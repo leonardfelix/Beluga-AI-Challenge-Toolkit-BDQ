@@ -36,7 +36,7 @@ from generate_instance import ProbConfig, main as encode_json
 import torch
 
 
-class CustomBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
+class ExampleBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
     """This is an example specialization of the BelugaGymCompatibleDomain class
     which transforms PDDL-style states and actions from the original Beluga
     scikit-decide domains to tensors to be used with deep reinforcement learning
@@ -583,7 +583,7 @@ if __name__ == "__main__":
     print(
         "Creating Gym-compatible domain, i.e. containing array-like spaces for actions and states"
     )
-    gym_compatible_domain = CustomBelugaGymCompatibleDomain(
+    gym_compatible_domain = ExampleBelugaGymCompatibleDomain(
         skd_beluga_domain=domain,
         max_fluent_value=1000,
         max_nb_atoms_or_fluents=1000,
