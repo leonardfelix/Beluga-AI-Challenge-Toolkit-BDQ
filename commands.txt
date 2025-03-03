@@ -1,0 +1,40 @@
+!IMPORTANT
+
+use     domain.task     to see what each number corresponds to in state
+
+GENERATE INSTANCE
+
+python generate_instance.py --num-flights 3 --out trial_problem --out-name trial
+
+
+TEST GYMNASIUM
+
+python generate_solve_rllib_test.py --out-name trialrl -ms 5
+
+
+GENERATE SOLUTION
+
+python generate_simulate_test.py -r 2 -ft 1 -fh 1 -hs 1 -o test_solution
+
+
+EVALUATION
+
+python evaluate_instance.py -i ./trial_problem/trial -o trial_problem -on tester -ms 5 --planner random
+
+
+CUSTOM_GYM
+python Beluga_custom_GYM.py --out-name trialrl
+
+
+TESTING
+
+domain.get_applicable_actions(s).contains(gym_compatible_domain.make_pddl_action([1,39,40,32,50,-1,-1,-1,-1,-1]))
+
+
+domain.get_applicable_actions(s).contains(gym_compatible_domain.make_pddl_action(gym_compatible_domain.make_action_array(domain.get_applicable_actions(s).sample())))
+
+
+domain.get_applicable_actions(s).contains(domain.get_applicable_actions(s).sample())
+
+
+gym_compatible_domain.make_state_array(domain.get_applicable_actions(s).sample())

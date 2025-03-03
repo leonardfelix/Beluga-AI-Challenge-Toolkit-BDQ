@@ -32,8 +32,13 @@ from skd_domains.skd_gym_domain import BelugaGymCompatibleDomain, BelugaGymEnv
 
 from generate_instance import ProbConfig, main as encode_json
 
+from RL_utils import generate_applicable_actions
 
-class ExampleBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
+# Additional imports
+import torch
+
+
+class CustomBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
     """This is an example specialization of the BelugaGymCompatibleDomain class
     which transforms PDDL-style states and actions from the original Beluga
     scikit-decide domains to tensors to be used with deep reinforcement learning
@@ -580,7 +585,7 @@ if __name__ == "__main__":
     print(
         "Creating Gym-compatible domain, i.e. containing array-like spaces for actions and states"
     )
-    gym_compatible_domain = ExampleBelugaGymCompatibleDomain(
+    gym_compatible_domain = CustomBelugaGymCompatibleDomain(
         skd_beluga_domain=domain,
         max_fluent_value=1000,
         max_nb_atoms_or_fluents=1000,
@@ -588,6 +593,40 @@ if __name__ == "__main__":
     )
 
     print("Creating the RLlib training agent, learning on the exported BelugaGymEnv")
+
+    # run on gym environment
+    done = False
+    state = domain.reset()
+    
+    while not done:
+
+        #policy
+        #Define DQN
+        jig = 1
+        action = 2
+
+        destination = 0
+        test_action = generate_applicable_actions(jig, action, destination, domain, state)
+
+        # array_state = gym_compatible_domain.make_state_array(state)
+        #random
+        action = domain.get_applicable_actions(state).sample()
+
+        # action = gym_compatible_domain.make_pddl_action(gym_compatible_domain.make_action_array(domain.get_applicable_actions(sa).sample()))
+        print(f"\nApplying action: {action}")
+        o = domain.step(action)
+
+        next_state = o.observation
+        reward = o.value.reward
+        cost = o.value.cost
+
+        done = o.termination
+        state = next_state
+        print(f"\nCurrent state: {state}")
+
+
+
+
     # IMPORTANT NOTE: we show here how to use RLlib on BelugaGymEnv which relies on scikit-decide's
     # automated mechanism to cast scikit-decide domains to gymnasium environments. However, the connection
     # to RLlib can also be done automatically by scikit-decide via scikit-decide's RayRLlib solver without
@@ -596,44 +635,48 @@ if __name__ == "__main__":
     # If you just want to have a gymnasium environment on which to train your RL agent,
     # do the 2 following tasks: 1) specialize the BelugaGymCompatibleDomain class to your tensor representation
     # needs; 2) pass this specialized class to the BelugaGymEnv class, which is your gym environment.
-    config = (
-        PPOConfig()
-        .api_stack(
-            enable_rl_module_and_learner=False,
-            enable_env_runner_and_connector_v2=False,
-        )
-        .environment(
-            env=BelugaGymEnv,
-            env_config={"domain": gym_compatible_domain},
-        )
-        .env_runners(num_env_runners=1)
-    )
 
-    algo = config.build()
-    algo.train()
 
-    print("Simulating RL learned policy")
-    s = domain.reset()
-    print(f"\nInitial state: {s}")
-    step = 0
-    while not domain._is_terminal(s) and step < (
-        max_simulation_steps if max_simulation_steps else 100
-    ):
-        a = gym_compatible_domain.make_pddl_action(
-            algo.compute_single_action(gym_compatible_domain.make_state_array(s))
-        )
-        if domain.get_applicable_actions(s).contains(a):
-            print(f"\nApplying action: {a}")
-            o = domain.step(a)
-            s = o.observation
-            print(f"\nCurrent state: {s}")
-            step += 1
-        else:
-            try:  # inferred action's integer args might correspond to non-existing PDDL objects
-                print(f"\nInapplicable action: {a} - exiting")
-            except IndexError:
-                print(
-                    f"\nInapplicable action: {gym_compatible_domain.make_action_array(a)} - exiting"
-                )
-            break
-    domain.cleanup()
+
+    
+    # config = (
+    #     PPOConfig()
+    #     .api_stack(
+    #         enable_rl_module_and_learner=False,
+    #         enable_env_runner_and_connector_v2=False,
+    #     )
+    #     .environment(
+    #         env=BelugaGymEnv,
+    #         env_config={"domain": gym_compatible_domain},
+    #     )
+    #     .env_runners(num_env_runners=1)
+    # )
+
+    # algo = config.build()
+    # algo.train()
+
+    # print("Simulating RL learned policy")
+    # s = domain.reset()
+    # print(f"\nInitial state: {s}")
+    # step = 0
+    # while not domain._is_terminal(s) and step < (
+    #     max_simulation_steps if max_simulation_steps else 100
+    # ):
+    #     a = gym_compatible_domain.make_pddl_action(
+    #         algo.compute_single_action(gym_compatible_domain.make_state_array(s))
+    #     )
+    #     if domain.get_applicable_actions(s).contains(a):
+    #         print(f"\nApplying action: {a}")
+    #         o = domain.step(a)
+    #         s = o.observation
+    #         print(f"\nCurrent state: {s}")
+    #         step += 1
+    #     else:
+    #         try:  # inferred action's integer args might correspond to non-existing PDDL objects
+    #             print(f"\nInapplicable action: {a} - exiting")
+    #         except IndexError:
+    #             print(
+    #                 f"\nInapplicable action: {gym_compatible_domain.make_action_array(a)} - exiting"
+    #             )
+    #         break
+    # domain.cleanup()
