@@ -32,13 +32,15 @@ from skd_domains.skd_gym_domain import BelugaGymCompatibleDomain, BelugaGymEnv
 
 from generate_instance import ProbConfig, main as encode_json
 
-from RL_utils import generate_applicable_actions
+from RL_utils import generate_applicable_actions, action_mask, destination_mask, get_valid_destination
+from dqn import DuelingDQN
+from RL_agent import Agent
 
 # Additional imports
 import torch
 
 
-class CustomBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
+class ExampleBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
     """This is an example specialization of the BelugaGymCompatibleDomain class
     which transforms PDDL-style states and actions from the original Beluga
     scikit-decide domains to tensors to be used with deep reinforcement learning
@@ -585,44 +587,63 @@ if __name__ == "__main__":
     print(
         "Creating Gym-compatible domain, i.e. containing array-like spaces for actions and states"
     )
-    gym_compatible_domain = CustomBelugaGymCompatibleDomain(
+    gym_compatible_domain = ExampleBelugaGymCompatibleDomain(
         skd_beluga_domain=domain,
         max_fluent_value=1000,
         max_nb_atoms_or_fluents=1000,
         max_nb_steps=1000,
     )
 
-    print("Creating the RLlib training agent, learning on the exported BelugaGymEnv")
 
-    # run on gym environment
-    done = False
-    state = domain.reset()
+    dql = Agent("belugaAI", domain, gym_compatible_domain)
+    dql.run(is_training=True)
+
+        
+    # # run on gym environment ---------------------------
+    # done = False
+    # state = domain.reset()
+
+    # # get the output and number of output for each branch (jig, action_id, destination)
+    # jigs_ids = [domain.task.objects.index(obj) for obj in domain.task.objects if obj.startswith("jig")]     
+    # num_jigs = len(jigs_ids)
+
+    # destination_ids = get_valid_destination(domain) # return dict type destionation, with pair (destination_name: object_id)
+
+
     
-    while not done:
+    # while not done:
 
-        #policy
-        #Define DQN
-        jig = 1
-        action = 2
+    #     #policy
+    #     #Define DQN
+    #     jig = 1
+    #     jig_id = jigs_ids[jig]
 
-        destination = 0
-        test_action = generate_applicable_actions(jig, action, destination, domain, state)
+    #     # get action mask
+    #     action_mask(jig_id, domain, state)
 
-        # array_state = gym_compatible_domain.make_state_array(state)
-        #random
-        action = domain.get_applicable_actions(state).sample()
+    #     action_id = 1
 
-        # action = gym_compatible_domain.make_pddl_action(gym_compatible_domain.make_action_array(domain.get_applicable_actions(sa).sample()))
-        print(f"\nApplying action: {action}")
-        o = domain.step(action)
+    #     # get destination mask
+    #     destination = 0
+    #     destination_mask(action_id, domain, state)
 
-        next_state = o.observation
-        reward = o.value.reward
-        cost = o.value.cost
+    #     test_action = generate_applicable_actions(jig, action_id, destination, domain, state)
+    #     print(gym_compatible_domain.make_state_array(state))
+    #     # array_state = gym_compatible_domain.make_state_array(state)
+    #     #random
+    #     action = domain.get_applicable_actions(state).sample()
 
-        done = o.termination
-        state = next_state
-        print(f"\nCurrent state: {state}")
+    #     # action = gym_compatible_domain.make_pddl_action(gym_compatible_domain.make_action_array(domain.get_applicable_actions(sa).sample()))
+    #     print(f"\nApplying action: {action}")
+    #     o = domain.step(action)
+
+    #     next_state = o.observation
+    #     reward = o.value.reward
+    #     cost = o.value.cost
+
+    #     done = o.termination
+    #     state = next_state
+    #     print(f"\nCurrent state: {state}")
 
 
 
