@@ -10,7 +10,7 @@ class DuelingDQN(nn.Module):
         self.fc1 = nn.Linear(state_dim, hidden_dim*2)
 
         self.fc2 = nn.Linear(hidden_dim*2, hidden_dim)
-        # self.fc3 = nn.Linear(hidden_dim, hidden_dim)
+        # self.fc3 = nn.Linear(hidden_dim*2, hidden_dim)
         # self.fc4 = nn.Linear(hidden_dim*2, hidden_dim)
 
         # Value network

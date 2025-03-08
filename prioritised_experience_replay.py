@@ -29,9 +29,9 @@ class PrioritisedReplayMemory:
         weights = (len(self.memory) * probabilities[indices]) ** (-beta)
         # weights /= weights.max()  # Normalize
         
-        states, actions, next_states, rewards, dones, action_mask, destination_mask = zip(*samples)
+        states, actions, next_states, rewards, dones, new_state_pddls = zip(*samples)
         
-        return [states, actions, next_states, rewards, dones, weights, indices, action_mask, destination_mask]
+        return [states, actions, next_states, rewards, dones, weights, indices, new_state_pddls]
 
     def update_priorities(self, indices, td_errors):
         for i, error in zip(indices, td_errors):

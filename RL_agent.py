@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 import os
 import argparse
 
-from RL_utils import generate_applicable_actions, action_mask, destination_mask, get_valid_destination, extract_from_actions
+from RL_utils import generate_applicable_actions, jig_mask, action_mask, destination_mask, get_valid_destination, extract_from_actions
 
 DATE_FORMAT = "%m-%d %H:%M:%S"
 
@@ -27,6 +27,9 @@ os.makedirs(RUNS_DIR, exist_ok=True)
 
 # use matplotlib agg
 matplotlib.use('Agg')
+
+# Large negative number for masking
+LARGE_NEG = -1e6
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # device = 'cpu'
@@ -178,19 +181,15 @@ class Agent:
                 # case where the option of change beluga is present choose it and continue
                 available_actions = domain.get_applicable_actions(state_pddl)
                 
-                beluga_complete = False
-                for action in available_actions._elements:
-                    if action.action_id == 8:  # Check if action_id is 8
-                        o = domain.step(action)
 
-                        new_state_pddl = o.observation
-                        terminated = o.termination
-                        reward = exp(-simulation_step) if terminated else 0
-
-                        state_pddl = new_state_pddl
-                        beluga_complete = True
-                        continue
+                beluga_complete = any(action.action_id == 8 for action in available_actions._elements)
                 if beluga_complete:
+                    action = next(action for action in available_actions._elements if action.action_id == 8)
+                    o = domain.step(action)
+                    new_state_pddl = o.observation
+                    terminated = o.termination
+                    reward = exp(-simulation_step) if terminated else 0
+                    state_pddl = new_state_pddl
                     continue
 
 
@@ -198,26 +197,27 @@ class Agent:
                 if is_training and random.random() < epsilon:
                     action = available_actions.sample()
                     
-                    jig_id, action_id, destination_id = extract_from_actions(action)
+                    jig_id_obj, action_id, destination_id_obj = extract_from_actions(action)
 
                     # convert from object index to raw index (start from 0)
-                    jig_id = jigs_ids.index(jig_id)
-                    destination_id = list(destination_ids.values()).index(destination_id)
+                    jig_id = jigs_ids.index(jig_id_obj)
+                    destination_id = destination_ids.index(destination_id_obj)
                     
 
                 else:
                     with torch.no_grad():
                         jig, action, destination = policy_dqn(state.unsqueeze(0))   #this output jig_id, action_id, and destination_id from 0
-                        jig_id = jig.argmax().item()
+                        jig_m = jig_mask(domain, state_pddl)
+                        jig_id = (jig.masked_fill_(~jig_m, LARGE_NEG)).argmax().item()
                         jig_id_obj = jigs_ids[jig_id]
 
                         action_m = action_mask(jig_id_obj, domain, state_pddl)
-                        action_id = (action * action_m).argmax().item()
+                        action_id = (action.masked_fill_(~action_m, LARGE_NEG)).argmax().item()
 
-                        destination_m = destination_mask(action_id, domain, state_pddl)
-                        destination_id = (destination * destination_m).argmax().item()
+                        destination_m = destination_mask(jig_id_obj, action_id, domain, state_pddl)
+                        destination_id = (destination.masked_fill_(~destination_m, LARGE_NEG)).argmax().item()
 
-                        destination_id_obj = list(destination_ids.values())[destination_id]
+                        destination_id_obj = destination_ids[destination_id]
 
                         action = generate_applicable_actions(jig_id_obj, action_id, destination_id_obj, domain, state_pddl)
 
@@ -233,32 +233,25 @@ class Agent:
                     terminated = o.termination
                     reward = reward = exp(-simulation_step) if terminated else 0    # Check if the reward decay please !!!!!!!!!!!!!!!!!!!!!!!!
 
-                    episode_reward += reward
+                episode_reward += reward
 
                 # convert new_state and reward to tensor
                 new_state = torch.tensor(gym_compatible_domain.make_state_array(new_state_pddl), dtype=torch.float32).to(device)
                 reward = torch.tensor(reward, dtype=torch.float32).to(device)
 
-                # log action
+                # # log action
                 print(f"Action: {action} Reward: {reward}")
 
                 if is_training:
-                    # get the action and destination mask for the new state
-                    next_jig, next_action, _ = policy_dqn(new_state.unsqueeze(0))
-                    next_jig_id = jigs_ids[next_jig.argmax().item()]
-                    next_action_mask = action_mask(next_jig_id, domain, state_pddl)
-                    next_action_id = (next_action * next_action_mask).argmax().item()
-                    next_destination_mask = destination_mask(next_action_id, domain, state_pddl)
-
                     # append to memory
-                    memory.append((state, [jig_id, action_id, destination_id], new_state, reward, terminated,  next_action_mask, next_destination_mask))
+                    memory.append((state, [jig_id, action_id, destination_id], new_state, reward, terminated, new_state_pddl))
                     step_count += 1
 
                 state_pddl = new_state_pddl
                 simulation_step += 1
 
             rewards_per_episode.append(episode_reward)
-            print("episode teminated")
+            print("episode terminated")
 
             # save model when best rewards is obtained to log  -----------------------------------
             if is_training:
@@ -271,8 +264,8 @@ class Agent:
                     torch.save(policy_dqn.state_dict(), self.MODEL_FILE)
                     best_reward = episode_reward
 
-                    # write into a file the memory contents
-                    memory.save_memory_to_file(self.DATA_FILE)
+                    # # write into a file the memory contents
+                    # memory.save_memory_to_file(self.DATA_FILE)
 
 
                 #update graph every 10 second
@@ -292,14 +285,14 @@ class Agent:
                 if len(memory) > self.batch_size:
                     batch = memory.sample(self.batch_size, beta)
 
-                    self.optimise(policy_dqn, target_dqn, batch, memory)
+                    self.optimise(policy_dqn, target_dqn, batch, memory, jigs_ids, domain)
 
                     # sync the target network with respect to the policy network
                     if step_count > self.network_sync_rate:
                         target_dqn.load_state_dict(policy_dqn.state_dict())
                         step_count = 0
 
-    def optimise(self, policy_dqn, target_dqn, batch, memory):
+    def optimise(self, policy_dqn, target_dqn, batch, memory, jigs_ids, domain):
         """
         Optimises the policy DQN using the provided batch.
         """
@@ -308,7 +301,11 @@ class Agent:
         # - actions contains [jig_id, action_id, destination_id]. 
         # - action_mask contains [action_mask, next_action_mask]. 
         # - destination_mask contains [destination_mask, next_destination_mask]
-        states, actions, new_states, rewards, terminated, weights, indices, action_mask, destination_mask = batch   
+        states, actions, new_states, rewards, terminated, weights, indices, new_state_pddls = batch   
+
+        batch_size = len(states)  # Number of batch size
+
+        jigs_ids_tensor = torch.tensor(jigs_ids, dtype=torch.int64).to(device)
 
         states = torch.stack(states)
         actions = torch.tensor(actions, dtype=torch.int64).to(device)
@@ -318,8 +315,13 @@ class Agent:
         weights = torch.tensor(weights, dtype=torch.float32).to(device)
         indices = torch.tensor(indices, dtype=torch.int64).to(device)
 
-        action_mask = torch.stack(action_mask)
-        destination_mask = torch.stack(destination_mask)
+
+        # Pre-allocate memory using torch.empty
+        best_jig = torch.empty(batch_size, dtype=torch.int64)
+        best_action = torch.empty(batch_size, dtype=torch.int64)
+        best_destination = torch.empty(batch_size, dtype=torch.int64)
+
+
 
         # Get current state Q value
         Q_jig, Q_action, Q_destination = policy_dqn(states)
@@ -328,11 +330,24 @@ class Agent:
         Q_destination = Q_destination.gather(1, actions[:, 2].unsqueeze(1)).squeeze(1)
 
         with torch.no_grad():
-            # Use policy network to select best actions
+            # Compute next Q-values for all states
             Q_next_jig, Q_next_action, Q_next_destination = policy_dqn(new_states)
-            best_jig = Q_next_jig.argmax(dim=1)
-            best_action = (Q_next_action * action_mask).argmax(dim=1)
-            best_destination = (Q_next_destination * destination_mask).argmax(dim=1)
+                
+            # Compute masks
+            jig_masks = [jig_mask(domain, new_state_pddl) for new_state_pddl in new_state_pddls]
+            
+            # Compute best actions
+            best_jig = torch.argmax(Q_next_jig.masked_fill_(~torch.stack(jig_masks), LARGE_NEG), dim=1)
+            best_jig_obj = jigs_ids_tensor[best_jig]
+
+            action_masks = [action_mask(jig_id, domain, new_state_pddl) for jig_id, new_state_pddl in zip(best_jig_obj, new_state_pddls)]
+
+            best_action = torch.argmax(Q_next_action.masked_fill_(~torch.stack(action_masks), LARGE_NEG), dim=1)
+
+            destination_masks = [destination_mask(jig_id, action_id, domain, new_state_pddl) for jig_id, action_id, new_state_pddl in zip(best_jig_obj, best_action, new_state_pddls)]
+
+            best_destination = torch.argmax(Q_next_destination.masked_fill_(~torch.stack(destination_masks), LARGE_NEG), dim=1)
+   
 
             # Use target network to evaluate best actions
             Q_target_jig, Q_target_action, Q_target_destination = target_dqn(new_states)
