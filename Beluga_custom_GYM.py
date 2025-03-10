@@ -553,8 +553,12 @@ if __name__ == "__main__":
         )
         sys.exit(1)
 
-    print("Generating JSON instance")
-    _, problem_name = encode_json(problem_folder, problem_name, config, pconfig=pconfig)
+    ########################################################### SELECT PROBLEM
+    problem_folder = "_three_jigs"
+    problem_name = "problem_s3_j3_r2_oc00_f3.json"
+
+    # print("Generating JSON instance")
+    # _, problem_name = encode_json(problem_folder, problem_name, config, pconfig=pconfig)
 
     print("Generating PDDL instance")
 
@@ -573,15 +577,17 @@ if __name__ == "__main__":
             )
         )
     )
-    domain_factory = lambda: (
-        SkdPPDDLDomain(inst, problem_name, problem_folder)
-        if args.probabilistic and args.probabilistic_model == "ppddl"
-        else (
-            SkdSPDDLDomain(inst, problem_name, problem_folder, classic=classic)
-            if args.probabilistic and args.probabilistic_model == "arrivals"
-            else SkdPDDLDomain(inst, problem_name, problem_folder, classic=classic)
-        )
-    )
+    # domain_factory = lambda: (
+    #     SkdPPDDLDomain(inst, problem_name, problem_folder)
+    #     if args.probabilistic and args.probabilistic_model == "ppddl"
+    #     else (
+    #         SkdSPDDLDomain(inst, problem_name, problem_folder, classic=classic)
+    #         if args.probabilistic and args.probabilistic_model == "arrivals"
+    #         else SkdPDDLDomain(inst, problem_name, problem_folder, classic=classic)
+    #     )
+    # )
+    print(inst)
+    domain_factory = lambda: SkdPDDLDomain(inst, problem_name, problem_folder, classic=classic)
     domain = domain_factory()
 
     print(

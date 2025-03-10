@@ -27,7 +27,7 @@ class PrioritisedReplayMemory:
         
         # Compute importance-sampling weights
         weights = (len(self.memory) * probabilities[indices]) ** (-beta)
-        # weights /= weights.max()  # Normalize
+        weights /= weights.max()  # Normalize
         
         states, actions, next_states, rewards, dones, new_state_pddls = zip(*samples)
         

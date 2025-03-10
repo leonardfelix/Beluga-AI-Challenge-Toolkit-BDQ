@@ -102,7 +102,7 @@ class Agent:
         state = domain.reset()
 
         # get the output and number of output for each branch (jig, action_id, destination)
-        jigs_ids = [domain.task.objects.index(obj) for obj in domain.task.objects if obj.startswith("jig")]     
+        jigs_ids = torch.tensor([domain.task.objects.index(obj) for obj in domain.task.objects if obj.startswith("jig")], dtype=torch.int64)
         
         destination_ids = get_valid_destination(domain) # return dict type destionation, with pair (destination_name: object_id)
 
@@ -112,6 +112,7 @@ class Agent:
         num_jigs = len(jigs_ids)
         num_destination = len(destination_ids)
 
+        base_reward = 100
         rewards_per_episode = []
         
         # Initialize the policy DQN with the specified dimensions and move it to the appropriate device
@@ -153,6 +154,7 @@ class Agent:
             target_dqn.load_state_dict(policy_dqn.state_dict())
 
             epsilon_history = []
+            self.loss_history = []
             
             step_count = 0
 
@@ -173,10 +175,15 @@ class Agent:
             episode_reward = 0.0
             simulation_step = 0
 
+            # list to keep track of the state visited for reward calculations
+            states_visited = []
+
             while (not terminated and simulation_step < self.maximum_simulation_steps):
     
                 state = gym_compatible_domain.make_state_array(state_pddl)
                 state = torch.tensor(state, dtype=torch.float32).to(device)
+
+                states_visited.append(state_pddl)
 
                 # case where the option of change beluga is present choose it and continue
                 available_actions = domain.get_applicable_actions(state_pddl)
@@ -188,7 +195,7 @@ class Agent:
                     o = domain.step(action)
                     new_state_pddl = o.observation
                     terminated = o.termination
-                    reward = exp(-simulation_step) if terminated else 0
+                    reward = self.get_reward(states_visited, new_state_pddl, terminated, base_reward, simulation_step)
                     state_pddl = new_state_pddl
                     continue
 
@@ -200,7 +207,7 @@ class Agent:
                     jig_id_obj, action_id, destination_id_obj = extract_from_actions(action)
 
                     # convert from object index to raw index (start from 0)
-                    jig_id = jigs_ids.index(jig_id_obj)
+                    jig_id = torch.nonzero(jigs_ids == jig_id_obj).squeeze().item()
                     destination_id = destination_ids.index(destination_id_obj)
                     
 
@@ -208,14 +215,14 @@ class Agent:
                     with torch.no_grad():
                         jig, action, destination = policy_dqn(state.unsqueeze(0))   #this output jig_id, action_id, and destination_id from 0
                         jig_m = jig_mask(domain, state_pddl)
-                        jig_id = (jig.masked_fill_(~jig_m, LARGE_NEG)).argmax().item()
+                        jig_id = (jig.masked_fill(~jig_m, LARGE_NEG)).argmax().item()
                         jig_id_obj = jigs_ids[jig_id]
 
                         action_m = action_mask(jig_id_obj, domain, state_pddl)
-                        action_id = (action.masked_fill_(~action_m, LARGE_NEG)).argmax().item()
+                        action_id = (action.masked_fill(~action_m, LARGE_NEG)).argmax().item()
 
                         destination_m = destination_mask(jig_id_obj, action_id, domain, state_pddl)
-                        destination_id = (destination.masked_fill_(~destination_m, LARGE_NEG)).argmax().item()
+                        destination_id = (destination.masked_fill(~destination_m, LARGE_NEG)).argmax().item()
 
                         destination_id_obj = destination_ids[destination_id]
 
@@ -231,7 +238,7 @@ class Agent:
 
                     new_state_pddl = o.observation
                     terminated = o.termination
-                    reward = reward = exp(-simulation_step) if terminated else 0    # Check if the reward decay please !!!!!!!!!!!!!!!!!!!!!!!!
+                    reward = self.get_reward(states_visited, new_state_pddl, terminated, base_reward, simulation_step) 
 
                 episode_reward += reward
 
@@ -271,7 +278,7 @@ class Agent:
                 #update graph every 10 second
                 current_time = datetime.now()
                 if current_time - last_graph_update > timedelta(seconds=10):
-                    self.save_graph(rewards_per_episode, epsilon_history)
+                    self.save_graph(rewards_per_episode, epsilon_history, self.loss_history)
                     last_graph_update = current_time
 
 
@@ -305,7 +312,7 @@ class Agent:
 
         batch_size = len(states)  # Number of batch size
 
-        jigs_ids_tensor = torch.tensor(jigs_ids, dtype=torch.int64).to(device)
+        jigs_ids_tensor = jigs_ids.clone().detach().to(device)
 
         states = torch.stack(states)
         actions = torch.tensor(actions, dtype=torch.int64).to(device)
@@ -337,16 +344,22 @@ class Agent:
             jig_masks = [jig_mask(domain, new_state_pddl) for new_state_pddl in new_state_pddls]
             
             # Compute best actions
-            best_jig = torch.argmax(Q_next_jig.masked_fill_(~torch.stack(jig_masks), LARGE_NEG), dim=1)
+            best_jig = torch.argmax(Q_next_jig.masked_fill(~torch.stack(jig_masks), LARGE_NEG), dim=1)
             best_jig_obj = jigs_ids_tensor[best_jig]
 
             action_masks = [action_mask(jig_id, domain, new_state_pddl) for jig_id, new_state_pddl in zip(best_jig_obj, new_state_pddls)]
 
-            best_action = torch.argmax(Q_next_action.masked_fill_(~torch.stack(action_masks), LARGE_NEG), dim=1)
+            best_action = torch.argmax(Q_next_action.masked_fill(~torch.stack(action_masks), LARGE_NEG), dim=1)
 
             destination_masks = [destination_mask(jig_id, action_id, domain, new_state_pddl) for jig_id, action_id, new_state_pddl in zip(best_jig_obj, best_action, new_state_pddls)]
 
-            best_destination = torch.argmax(Q_next_destination.masked_fill_(~torch.stack(destination_masks), LARGE_NEG), dim=1)
+            best_destination = torch.argmax(Q_next_destination.masked_fill(~torch.stack(destination_masks), LARGE_NEG), dim=1)
+
+
+            # # Compute best actions
+            # best_jig = torch.argmax(Q_next_jig, dim=1)
+            # best_action = torch.argmax(Q_next_action, dim=1)
+            # best_destination = torch.argmax(Q_next_destination, dim=1)
    
 
             # Use target network to evaluate best actions
@@ -366,19 +379,33 @@ class Agent:
         td_errors_action = Q_action - target_Q_action
         td_errors_destination = Q_destination - target_Q_destination
 
+        loss_jig = torch.mean((td_errors_jig ** 2) * weights)
+        loss_action = torch.mean((td_errors_action ** 2) * weights)
+        loss_destination = torch.mean((td_errors_destination ** 2) * weights)
+
+
         # Compute total TD error
         td_errors = torch.abs(td_errors_jig) + torch.abs(td_errors_action) + torch.abs(td_errors_destination)
 
         loss = torch.mean((td_errors ** 2) * weights)
 
+        # loss = torch.mean((td_errors_jig ** 2) * weights) + \
+        #         torch.mean((td_errors_action ** 2) * weights) + \
+        #         torch.mean((td_errors_destination ** 2) * weights)
+
         # Optimize network
         self.optimiser.zero_grad()
         loss.backward()
+
+        torch.nn.utils.clip_grad_norm_(policy_dqn.parameters(), 10.0)
         self.optimiser.step()
+
+        self.loss_history.append(loss.item())
 
         memory.update_priorities(indices, td_errors)
 
-    def save_graph(self, rewards_per_episode, epsilon_history):
+
+    def save_graph(self, rewards_per_episode, epsilon_history, loss_history):
         
         fig = plt.figure(1)
 
@@ -389,10 +416,17 @@ class Agent:
         for x in range(len(rewards_per_episode)):
             mean_rewards[x] = np.mean(rewards_per_episode[max(0, x-100):x+1])
 
-        plt.plot(mean_rewards)
-        plt.xlabel("Episode")
+        # plt.plot(mean_rewards)
+        # plt.xlabel("Episode")
+        # plt.ylabel("Reward")
+        # plt.title("Reward per episode")
+
+        plt.plot(loss_history)
+        plt.xlabel("Loss")
         plt.ylabel("Reward")
-        plt.title("Reward per episode")
+        plt.title("Loss per episode")
+
+
 
         # plot epsilon
         plt.subplot(1,2,2)
@@ -404,6 +438,13 @@ class Agent:
         fig.savefig(self.GRAPH_FILE)
 
         plt.close(fig)
+
+    def get_reward(self, states_visited, new_state, terminated, base_reward, simulation_step):
+        if new_state not in states_visited:
+            return base_reward if terminated else 0
+        else:
+            return -1.0
+
 
 if __name__ == "__main__":
     # parse command line inputs

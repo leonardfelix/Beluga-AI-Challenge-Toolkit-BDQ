@@ -14,20 +14,20 @@ def jig_mask(domain, state):
         corresponding jig has applicable actions, and 0 otherwise.
     """
 
-    jigs_ids = [domain.task.objects.index(obj) for obj in domain.task.objects if obj.startswith("jig")]
+    jigs_ids = torch.tensor([domain.task.objects.index(obj) for obj in domain.task.objects if obj.startswith("jig")], dtype=torch.int64)
 
     # Represents each of the jigs.
     mask = torch.zeros(len(jigs_ids), dtype=torch.bool)
     
     # Get applicable actions
-    applicable_actions = domain.get_applicable_actions(state)
+    applicable_actions = domain.get_applicable_actions(state)._elements
 
-    # Iterate over applicable actions and set corresponding indices to 1
-    for action in applicable_actions._elements:
-        if action.action_id == 8:  # case for complete beluga which destination is don't care
-            continue
-        jig_id = action.args[0]  # Extract jig id from action args
-        mask[jigs_ids.index(jig_id)] = 1
+    # Extract relevant jig_ids in a tensor for vectorized processing
+    jig_ids = torch.tensor([action.args[0] for action in applicable_actions if action.action_id != 8], dtype=torch.int64)
+
+    # Get valid indices in jigs_ids and update mask
+    valid_indices = torch.nonzero(torch.isin(jigs_ids, jig_ids), as_tuple=True)[0]
+    mask[valid_indices] = 1
     
     return mask
 
@@ -74,13 +74,12 @@ def action_mask(jig_id, domain, state):     # maybe add list of used racks? for 
     mask = torch.zeros(9, dtype=torch.bool)  
 
     # Get applicable actions
-    applicable_actions = domain.get_applicable_actions(state)
+    applicable_actions = domain.get_applicable_actions(state)._elements
 
-    # Iterate over applicable actions and set corresponding indices to 1
-    for action in applicable_actions._elements:
-        cur_jig_id = action.args[0]  # Extract jig id from action args
-        if cur_jig_id == jig_id:
-            mask[action.action_id] = 1
+    # Convert applicable actions to a tensor format for vectorized processing
+    action_ids = torch.tensor([action.action_id for action in applicable_actions if action.args[0] == jig_id], dtype=torch.int64)
+
+    mask[action_ids] = 1
 
     return mask
     
@@ -138,7 +137,7 @@ def destination_mask(jig_id, action_id, domain, state):
     destination_objs = torch.tensor([action.args[destination_index] if len(action.args) > destination_index else 0 for action in applicable_actions._elements])
 
     # Set corresponding indices to 1
-    mask[torch.tensor([destination_ids.index(obj) for obj in destination_objs[match_indices]])] = 1
+    mask[torch.tensor([destination_ids.index(obj) for obj in destination_objs[match_indices]], dtype=torch.int64)] = 1
 
     # # Iterate over applicable actions and set corresponding indices to 1
     # for action in applicable_actions._elements:

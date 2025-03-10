@@ -3,19 +3,19 @@ belugaAI:
   checkpoint: ""
   prior_data: ""
   replay_memory_size: 100000
-  batch_size: 32
-  epsilon_start: 1.0
+  batch_size: 64
+  epsilon_start: 0.3
   epsilon_decay: 0.995
   epsilon_end: 0.05
-  network_sync_rate: 100
+  network_sync_rate: 10
   discount_factor: 0.99
-  lr: 0.001
+  lr: 0.0001
   hidden_dims: 256
   maximum_simulation_steps: 100
   enable_double_DQN: True
   enable_dueling_DQN: True
-  alpha: 0.6 # priorty exponent (0 = uniform, 1 = highest priority first)
-  beta: 0.4 # importance-sampling correction (0 = no correction, 1 = perfect correction)
+  alpha: 0.6 # priorty exponent (0 = uniform, 1 = highest priority first) deafult 0.6
+  beta: 0.4 # importance-sampling correction (0 = no correction, 1 = perfect correction) defaut 0.4
   beta_increment: 0.0001 # rate of beta increase per episode
 
 
