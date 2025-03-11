@@ -149,7 +149,7 @@ class ExampleBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
         self.true_observation_space = BoxSpace(
             low=np.ones(
                 shape=[
-                    3,
+                    2,
                     self.max_nb_atoms_or_fluents,
                     2
                     + max(
@@ -157,6 +157,15 @@ class ExampleBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
                         for p in self.skd_beluga_domain.task.predicates
                     ),
                 ],
+                # shape=[
+                #     3,
+                #     self.max_nb_atoms_or_fluents,
+                #     2
+                #     + max(
+                #         len(p.parameters)
+                #         for p in self.skd_beluga_domain.task.predicates
+                #     ),
+                # ],
                 dtype=np.int32,
             )
             * (-1),
@@ -183,7 +192,7 @@ class ExampleBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
                     ]
                     * self.max_nb_atoms_or_fluents
                 ]
-                * 3,
+                * 2,
                 dtype=np.int32,
             ),
         )
@@ -215,7 +224,7 @@ class ExampleBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
         self.current_pddl_state: SkdBaseDomain.T_state = None
         self.nb_steps: int = 0
 
-    def make_state_array(self, pddl_state: SkdBaseDomain.T_state) -> ArrayLike:
+    def make_state_array(self, pddl_state: SkdBaseDomain.T_state, jig_ids, destination_ids) -> ArrayLike:
         state_array: ArrayLike = np.ones(
             shape=self.true_observation_space.shape, dtype=np.int32
         ) * (-1)
@@ -243,18 +252,120 @@ class ExampleBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
                 state_array[1][i][1 : 1 + len(args)] = args
                 state_array[1][i][-1] = 1
                 i += 1
-        i = 0
-        for f, fluent in enumerate(pddl_state.fluents):
-            for args, val in fluent:
-                if i >= self.max_nb_atoms_or_fluents:
-                    raise RuntimeError(
-                        "Too many state fluents to store them in the state tensor; "
-                        "please increase max_nb_atoms_or_fluents"
-                    )
-                state_array[2][i][0] = f
-                state_array[2][i][1 : 1 + len(args)] = args
-                state_array[2][i][-1] = val
-                i += 1
+
+        # i = 0
+        # for p, atom in enumerate(self.skd_beluga_domain.task.static_facts):
+        #     if p == 3:  # state of jig and their types
+        #         for args in sorted(atom):
+        #             if i >= self.max_nb_atoms_or_fluents:
+        #                 raise RuntimeError(
+        #                     "Too many state atoms to store them in the state tensor; "
+        #                     "please increase max_nb_atoms_or_fluents"
+        #                 )
+        #             state_array += args
+        #             i += 1
+    
+        # i = 0
+        # for p, atom in enumerate(pddl_state.atoms):
+        #     if p == 2:  # state of rack and empty spaces
+        #         for args in sorted(atom):
+        #             if i >= self.max_nb_atoms_or_fluents:
+        #                 raise RuntimeError(
+        #                     "Too many state atoms to store them in the state tensor; "
+        #                     "please increase max_nb_atoms_or_fluents"
+        #                 )
+        #             state_array.append(args[1])
+        #             i += 1
+        #     if p == 6:  # state of jigs size
+        #         for args in sorted(atom):
+        #             if i >= self.max_nb_atoms_or_fluents:
+        #                 raise RuntimeError(
+        #                     "Too many state atoms to store them in the state tensor; "
+        #                     "please increase max_nb_atoms_or_fluents"
+        #                 )
+        #             state_array.append(args[1])
+        #             i += 1
+        #     if p == 3:  # state of jigs and position
+        #         for args in sorted(atom):
+        #             if i >= self.max_nb_atoms_or_fluents:
+        #                 raise RuntimeError(
+        #                     "Too many state atoms to store them in the state tensor; "
+        #                     "please increase max_nb_atoms_or_fluents"
+        #                 )
+        #             state_array.append(args[1])
+        #             i += 1
+
+        #     if p == 7:  # state of required jigs for production line
+        #         for args in sorted(atom):
+        #             if i >= self.max_nb_atoms_or_fluents:
+        #                 raise RuntimeError(
+        #                     "Too many state atoms to store them in the state tensor; "
+        #                     "please increase max_nb_atoms_or_fluents"
+        #                 )
+        #             state_array += args
+        #             i += 1
+            
+        #     if p == 5:  # state of current unloaded beluga
+        #         for args in sorted(atom):
+        #             if i >= self.max_nb_atoms_or_fluents:
+        #                 raise RuntimeError(
+        #                     "Too many state atoms to store them in the state tensor; "
+        #                     "please increase max_nb_atoms_or_fluents"
+        #                 )
+        #             state_array += args
+        #             i += 1
+
+        #     if p == 8:  # state of required type for beluga return
+        #         for args in sorted(atom):
+        #             if i >= self.max_nb_atoms_or_fluents:
+        #                 raise RuntimeError(
+        #                     "Too many state atoms to store them in the state tensor; "
+        #                     "please increase max_nb_atoms_or_fluents"
+        #                 )
+        #             state_array += args
+        #             i += 1
+
+        # i = 0
+        # for p, atom in enumerate(self.skd_beluga_domain.task.static_facts):
+        #     for args in atom:
+        #         if i >= self.max_nb_atoms_or_fluents:
+        #             raise RuntimeError(
+        #                 "Too many static atoms to store them in the state tensor; "
+        #                 "please increase max_nb_atoms_or_fluents"
+        #             )
+        #         state_array[0][i][0] = p
+        #         state_array[0][i][1 : 1 + len(args)] = args
+        #         state_array[0][i][-1] = 1
+        #         i += 1
+        # i = 0
+        # for p, atom in enumerate(pddl_state.atoms):
+        #     for args in atom:
+        #         if i >= self.max_nb_atoms_or_fluents:
+        #             raise RuntimeError(
+        #                 "Too many state atoms to store them in the state tensor; "
+        #                 "please increase max_nb_atoms_or_fluents"
+        #             )
+        #         state_array[1][i][0] = p
+        #         state_array[1][i][1 : 1 + len(args)] = args
+        #         state_array[1][i][-1] = 1
+        #         i += 1
+        # i = 0
+        # for f, fluent in enumerate(pddl_state.fluents):
+        #     for args, val in fluent:
+        #         if i >= self.max_nb_atoms_or_fluents:
+        #             raise RuntimeError(
+        #                 "Too many state fluents to store them in the state tensor; "
+        #                 "please increase max_nb_atoms_or_fluents"
+        #             )
+        #         state_array[2][i][0] = f
+        #         state_array[2][i][1 : 1 + len(args)] = args
+        #         state_array[2][i][-1] = val
+        #         i += 1]
+
+        # # convert all object id to the input id
+        # state_array = [jig_ids.index(obj)  if obj in jig_ids else obj for obj in state_array]
+        # state_array = [destination_ids.index(obj) if obj in destination_ids else obj for obj in state_array]
+           
         return state_array.flatten()
 
     def make_pddl_state(self, state_array: ArrayLike) -> SkdBaseDomain.T_state:
@@ -595,9 +706,9 @@ if __name__ == "__main__":
     )
     gym_compatible_domain = ExampleBelugaGymCompatibleDomain(
         skd_beluga_domain=domain,
-        max_fluent_value=1000,
-        max_nb_atoms_or_fluents=1000,
-        max_nb_steps=1000,
+        max_fluent_value=0,
+        max_nb_atoms_or_fluents=290,
+        max_nb_steps=0,
     )
 
 

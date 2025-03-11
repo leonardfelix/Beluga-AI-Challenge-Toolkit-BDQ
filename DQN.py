@@ -7,10 +7,10 @@ class DuelingDQN(nn.Module):
     def __init__(self, state_dim, action_dim, jig_dim, destination_dim, hidden_dim=256):
         super(DuelingDQN, self).__init__()
 
-        self.fc1 = nn.Linear(state_dim, hidden_dim*4)
+        self.fc1 = nn.Linear(state_dim, hidden_dim)
 
-        self.fc2 = nn.Linear(hidden_dim*4, hidden_dim*2)
-        self.fc3 = nn.Linear(hidden_dim*2, hidden_dim)
+        # self.fc2 = nn.Linear(hidden_dim*4, hidden_dim*2)
+        # self.fc3 = nn.Linear(hidden_dim*2, hidden_dim)
         # self.fc4 = nn.Linear(hidden_dim*2, hidden_dim)
 
         # Value network
@@ -29,8 +29,8 @@ class DuelingDQN(nn.Module):
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
+        # x = F.relu(self.fc2(x))
+        # x = F.relu(self.fc3(x))
         # x = F.relu(self.fc4(x))
         
         # Compute the value function

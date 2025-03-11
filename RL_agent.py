@@ -102,17 +102,17 @@ class Agent:
         state = domain.reset()
 
         # get the output and number of output for each branch (jig, action_id, destination)
-        jigs_ids = torch.tensor([domain.task.objects.index(obj) for obj in domain.task.objects if obj.startswith("jig")], dtype=torch.int64)
+        jigs_ids = [domain.task.objects.index(obj) for obj in domain.task.objects if obj.startswith("jig")]
         
         destination_ids = get_valid_destination(domain) # return dict type destionation, with pair (destination_name: object_id)
 
         # get the state and action brach shape
-        num_states = len(gym_compatible_domain.make_state_array(state))
-        num_actions = 9
+        num_states = len(gym_compatible_domain.make_state_array(state, jigs_ids, destination_ids))
+        num_actions =  8 # not including change-beluga
         num_jigs = len(jigs_ids)
         num_destination = len(destination_ids)
 
-        base_reward = 100
+        base_reward = 4*num_jigs
         rewards_per_episode = []
         
         # Initialize the policy DQN with the specified dimensions and move it to the appropriate device
@@ -180,7 +180,7 @@ class Agent:
 
             while (not terminated and simulation_step < self.maximum_simulation_steps):
     
-                state = gym_compatible_domain.make_state_array(state_pddl)
+                state = gym_compatible_domain.make_state_array(state_pddl, jigs_ids, destination_ids)
                 state = torch.tensor(state, dtype=torch.float32).to(device)
 
                 states_visited.append(state_pddl)
@@ -207,19 +207,22 @@ class Agent:
                     jig_id_obj, action_id, destination_id_obj = extract_from_actions(action)
 
                     # convert from object index to raw index (start from 0)
-                    jig_id = torch.nonzero(jigs_ids == jig_id_obj).squeeze().item()
+                    jig_id = jigs_ids.index(jig_id_obj)
                     destination_id = destination_ids.index(destination_id_obj)
                     
 
                 else:
                     with torch.no_grad():
                         jig, action, destination = policy_dqn(state.unsqueeze(0))   #this output jig_id, action_id, and destination_id from 0
-                        jig_m = jig_mask(domain, state_pddl)
+
+                        action_m = action_mask(domain, state_pddl)
+                        action_id = (action.masked_fill(~action_m, LARGE_NEG)).argmax().item()
+                        
+                        jig_m = jig_mask(action_id, domain, state_pddl)
                         jig_id = (jig.masked_fill(~jig_m, LARGE_NEG)).argmax().item()
                         jig_id_obj = jigs_ids[jig_id]
 
-                        action_m = action_mask(jig_id_obj, domain, state_pddl)
-                        action_id = (action.masked_fill(~action_m, LARGE_NEG)).argmax().item()
+                        
 
                         destination_m = destination_mask(jig_id_obj, action_id, domain, state_pddl)
                         destination_id = (destination.masked_fill(~destination_m, LARGE_NEG)).argmax().item()
@@ -243,11 +246,11 @@ class Agent:
                 episode_reward += reward
 
                 # convert new_state and reward to tensor
-                new_state = torch.tensor(gym_compatible_domain.make_state_array(new_state_pddl), dtype=torch.float32).to(device)
+                new_state = torch.tensor(gym_compatible_domain.make_state_array(new_state_pddl, jigs_ids, destination_ids), dtype=torch.float32).to(device)
                 reward = torch.tensor(reward, dtype=torch.float32).to(device)
 
                 # # log action
-                print(f"Action: {action} Reward: {reward}")
+                # print(f"Action: {action} Reward: {reward}")
 
                 if is_training:
                     # append to memory
@@ -312,7 +315,7 @@ class Agent:
 
         batch_size = len(states)  # Number of batch size
 
-        jigs_ids_tensor = jigs_ids.clone().detach().to(device)
+        jigs_ids_tensor = torch.tensor(jigs_ids, dtype=torch.int64).to(device)
 
         states = torch.stack(states)
         actions = torch.tensor(actions, dtype=torch.int64).to(device)
@@ -337,32 +340,31 @@ class Agent:
         Q_destination = Q_destination.gather(1, actions[:, 2].unsqueeze(1)).squeeze(1)
 
         with torch.no_grad():
-            # Compute next Q-values for all states
+            # Compute next Q-values for all states          
             Q_next_jig, Q_next_action, Q_next_destination = policy_dqn(new_states)
                 
+            action_masks = [action_mask(domain, new_state_pddl) for new_state_pddl in new_state_pddls]
+
+            best_action = torch.argmax(Q_next_action.masked_fill(~torch.stack(action_masks), LARGE_NEG), dim=1)
+
             # Compute masks
-            jig_masks = [jig_mask(domain, new_state_pddl) for new_state_pddl in new_state_pddls]
+            jig_masks = [jig_mask(action_id, domain, new_state_pddl) for action_id, new_state_pddl in zip(best_action,new_state_pddls)]
             
             # Compute best actions
             best_jig = torch.argmax(Q_next_jig.masked_fill(~torch.stack(jig_masks), LARGE_NEG), dim=1)
             best_jig_obj = jigs_ids_tensor[best_jig]
 
-            action_masks = [action_mask(jig_id, domain, new_state_pddl) for jig_id, new_state_pddl in zip(best_jig_obj, new_state_pddls)]
-
-            best_action = torch.argmax(Q_next_action.masked_fill(~torch.stack(action_masks), LARGE_NEG), dim=1)
+            
 
             destination_masks = [destination_mask(jig_id, action_id, domain, new_state_pddl) for jig_id, action_id, new_state_pddl in zip(best_jig_obj, best_action, new_state_pddls)]
 
             best_destination = torch.argmax(Q_next_destination.masked_fill(~torch.stack(destination_masks), LARGE_NEG), dim=1)
 
+            # target_Q_jig = Q_next_jig.gather(1, best_jig.unsqueeze(1)).squeeze(1)
+            # target_Q_action = Q_next_action.gather(1, best_action.unsqueeze(1)).squeeze(1)
+            # target_Q_destination = Q_next_destination.gather(1, best_destination.unsqueeze(1)).squeeze(1)
 
-            # # Compute best actions
-            # best_jig = torch.argmax(Q_next_jig, dim=1)
-            # best_action = torch.argmax(Q_next_action, dim=1)
-            # best_destination = torch.argmax(Q_next_destination, dim=1)
-   
-
-            # Use target network to evaluate best actions
+            # Use target network to evaluate best actions (Duelling DQN)
             Q_target_jig, Q_target_action, Q_target_destination = target_dqn(new_states)
             target_Q_jig = Q_target_jig.gather(1, best_jig.unsqueeze(1)).squeeze(1)
             target_Q_action = Q_target_action.gather(1, best_action.unsqueeze(1)).squeeze(1)
@@ -375,33 +377,31 @@ class Agent:
 
 
        # Compute TD errors (absolute difference between Q-values and targets)
-        td_errors_jig = Q_jig - target_Q_jig
-        td_errors_action = Q_action - target_Q_action
-        td_errors_destination = Q_destination - target_Q_destination
+        td_errors_jig = target_Q_jig - Q_jig
+        td_errors_action = target_Q_action - Q_action
+        td_errors_destination = target_Q_destination - Q_destination
 
-        loss_jig = torch.mean((td_errors_jig ** 2) * weights)
-        loss_action = torch.mean((td_errors_action ** 2) * weights)
-        loss_destination = torch.mean((td_errors_destination ** 2) * weights)
+        # Compute MSE loss per branch
+        loss_jig = td_errors_jig.pow(2)
+        loss_action = td_errors_action.pow(2)
+        loss_destination = td_errors_destination.pow(2)
 
+        # Compute final loss as mean across branches
+        loss = (loss_jig + loss_action + loss_destination) / 3
 
-        # Compute total TD error
-        td_errors = torch.abs(td_errors_jig) + torch.abs(td_errors_action) + torch.abs(td_errors_destination)
-
-        loss = torch.mean((td_errors ** 2) * weights)
-
-        # loss = torch.mean((td_errors_jig ** 2) * weights) + \
-        #         torch.mean((td_errors_action ** 2) * weights) + \
-        #         torch.mean((td_errors_destination ** 2) * weights)
+        # Apply importance sampling weights (for prioritized experience replay)
+        loss = torch.mean(loss * weights)
 
         # Optimize network
         self.optimiser.zero_grad()
         loss.backward()
-
-        torch.nn.utils.clip_grad_norm_(policy_dqn.parameters(), 10.0)
+        torch.nn.utils.clip_grad_norm_(policy_dqn.parameters(), 5.0)
         self.optimiser.step()
 
         self.loss_history.append(loss.item())
 
+        # TD error for prioritised replay updates
+        td_errors = torch.abs(td_errors_jig) + torch.abs(td_errors_action) + torch.abs(td_errors_destination)
         memory.update_priorities(indices, td_errors)
 
 
@@ -416,15 +416,15 @@ class Agent:
         for x in range(len(rewards_per_episode)):
             mean_rewards[x] = np.mean(rewards_per_episode[max(0, x-100):x+1])
 
-        # plt.plot(mean_rewards)
-        # plt.xlabel("Episode")
-        # plt.ylabel("Reward")
-        # plt.title("Reward per episode")
-
-        plt.plot(loss_history)
-        plt.xlabel("Loss")
+        plt.plot(mean_rewards)
+        plt.xlabel("Episode")
         plt.ylabel("Reward")
-        plt.title("Loss per episode")
+        plt.title("Reward per episode")
+
+        # plt.plot(loss_history)
+        # plt.xlabel("Loss")
+        # plt.ylabel("Reward")
+        # plt.title("Loss per episode")
 
 
 
@@ -441,9 +441,9 @@ class Agent:
 
     def get_reward(self, states_visited, new_state, terminated, base_reward, simulation_step):
         if new_state not in states_visited:
-            return base_reward if terminated else 0
+            return 1 if terminated else 0
         else:
-            return -1.0
+            return -1
 
 
 if __name__ == "__main__":

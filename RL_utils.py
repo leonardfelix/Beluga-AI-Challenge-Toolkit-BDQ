@@ -1,6 +1,6 @@
 import torch
 
-def jig_mask(domain, state):
+def jig_mask(action_id, domain, state):
 
     """
     Generates a mask tensor indicating which jigs have applicable actions in the given state.
@@ -23,7 +23,7 @@ def jig_mask(domain, state):
     applicable_actions = domain.get_applicable_actions(state)._elements
 
     # Extract relevant jig_ids in a tensor for vectorized processing
-    jig_ids = torch.tensor([action.args[0] for action in applicable_actions if action.action_id != 8], dtype=torch.int64)
+    jig_ids = torch.tensor([action.args[0] for action in applicable_actions if action.action_id == action_id], dtype=torch.int64)
 
     # Get valid indices in jigs_ids and update mask
     valid_indices = torch.nonzero(torch.isin(jigs_ids, jig_ids), as_tuple=True)[0]
@@ -33,7 +33,7 @@ def jig_mask(domain, state):
 
 
 
-def action_mask(jig_id, domain, state):     # maybe add list of used racks? for put down and stack
+def action_mask(domain, state):     # maybe add list of used racks? for put down and stack
 
     # represents each of the 9 action id, e.g. load-beluga, deliver-to-hangar, etc.
     """
@@ -71,13 +71,13 @@ def action_mask(jig_id, domain, state):     # maybe add list of used racks? for 
             - get-from-hangar
     """
 
-    mask = torch.zeros(9, dtype=torch.bool)  
+    mask = torch.zeros(8, dtype=torch.bool)  
 
     # Get applicable actions
     applicable_actions = domain.get_applicable_actions(state)._elements
 
     # Convert applicable actions to a tensor format for vectorized processing
-    action_ids = torch.tensor([action.action_id for action in applicable_actions if action.args[0] == jig_id], dtype=torch.int64)
+    action_ids = torch.tensor([action.action_id for action in applicable_actions if action.action_id != 8], dtype=torch.int64)
 
     mask[action_ids] = 1
 
@@ -120,7 +120,8 @@ def destination_mask(jig_id, action_id, domain, state):
     destination_indexes = {
         6: 1,  
         1: 2, 2: 2, 4: 2, 7: 2,  
-        0: 3, 3: 3, 5: 3  
+        0: 3, 5: 3,
+        3: 4 
     }
 
     action_id = action_id.item() if type(action_id) == torch.Tensor else action_id
@@ -179,8 +180,10 @@ def generate_applicable_actions(jig, action, destination, domain, state):
             destination_index = 1
         elif action in [1,2,4,7]:
             destination_index = 2
-        elif action in [0,3,5]:
+        elif action in [0,5]:
             destination_index = 3
+        elif action in [3]:
+            destination_index = 4
         else:
             raise ValueError('Invalid action id')
 
@@ -204,8 +207,10 @@ def extract_from_actions(action):
             destination_index = 1
         elif action.action_id in [1,2,4,7]:
             destination_index = 2
-        elif action.action_id in [0,3,5]:
+        elif action.action_id in [0,5]:
             destination_index = 3
+        elif action.action_id in [3]:
+            destination_index = 4
         elif action.action_id in [8]:
             destination_index = None
         else:
@@ -229,7 +234,7 @@ def get_valid_destination(domain):
     destination = []
     objects = domain.task.objects
     for index, obj in enumerate(objects):
-        if obj.startswith(("beluga_trailer","factory_trailer","rack", "hangar", "beluga")):
+        if obj.startswith(("beluga_trailer","factory_trailer","rack", "pl", "beluga")):
             destination.append(index)
 
     return destination
