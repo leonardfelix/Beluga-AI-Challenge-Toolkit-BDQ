@@ -1,7 +1,6 @@
 import torch
 
-def jig_mask(action_id, domain, state):
-
+def jig_mask(destination_id, domain, state):
     """
     Generates a mask tensor indicating which jigs have applicable actions in the given state.
 
@@ -13,6 +12,13 @@ def jig_mask(action_id, domain, state):
         A torch tensor of size equal to the number of jigs, where each element is 1 if the 
         corresponding jig has applicable actions, and 0 otherwise.
     """
+    # dict for destination id depending on action_id
+    destination_indexes = {
+        6: 1,  
+        1: 2, 2: 2, 4: 2, 7: 2,  
+        0: 3, 5: 3,
+        3: 4 
+    }
 
     jigs_ids = torch.tensor([domain.task.objects.index(obj) for obj in domain.task.objects if obj.startswith("jig")], dtype=torch.int64)
 
@@ -23,68 +29,16 @@ def jig_mask(action_id, domain, state):
     applicable_actions = domain.get_applicable_actions(state)._elements
 
     # Extract relevant jig_ids in a tensor for vectorized processing
-    jig_ids = torch.tensor([action.args[0] for action in applicable_actions if action.action_id == action_id], dtype=torch.int64)
+    jig_ids = torch.tensor([action.args[0] for action in applicable_actions if action.action_id != 8 and action.args[destination_indexes[action.action_id]] == destination_id], dtype=torch.int64)
 
     # Get valid indices in jigs_ids and update mask
     valid_indices = torch.nonzero(torch.isin(jigs_ids, jig_ids), as_tuple=True)[0]
     mask[valid_indices] = 1
     
     return mask
-
-
-
-def action_mask(domain, state):     # maybe add list of used racks? for put down and stack
-
-    # represents each of the 9 action id, e.g. load-beluga, deliver-to-hangar, etc.
-    """
-    Generates a mask tensor indicating which actions are applicable for a given jig in a given state.
-
-    Args:
-        jig_id: The id of the jig.
-        domain: The domain containing the task and its objects.
-        state: The current state of the problem.
-
-    Returns:
-        A torch tensor of size 9, where each element is 1 if the corresponding action is applicable, and 0 otherwise.
-
-    Notes:
-        The general action availability depends on the position of the jig in the state. The different cases are detailed below.
-
-        1. Jig in Beluga: 
-            - unload-beluga 
-
-        2. Jig in beluga trailer:
-            - load-beluga
-            - put-down-rack
-            - stack-rack
-
-        3. Jig in rack:
-            - pick-up-rack
-            - unstack-rack
-
-        4. Jig in factory trailer:
-            - deliver-to-hangar
-            - put-down-rack
-            - stack-rack
-
-        5. Jig in hangar:
-            - get-from-hangar
-    """
-
-    mask = torch.zeros(8, dtype=torch.bool)  
-
-    # Get applicable actions
-    applicable_actions = domain.get_applicable_actions(state)._elements
-
-    # Convert applicable actions to a tensor format for vectorized processing
-    action_ids = torch.tensor([action.action_id for action in applicable_actions if action.action_id != 8], dtype=torch.int64)
-
-    mask[action_ids] = 1
-
-    return mask
     
 
-def destination_mask(jig_id, action_id, domain, state):
+def destination_mask(domain, state):
     
     """
     Generates a mask tensor indicating which destinations are applicable for a given jig and action in a given state.
@@ -124,34 +78,25 @@ def destination_mask(jig_id, action_id, domain, state):
         3: 4 
     }
 
-    action_id = action_id.item() if type(action_id) == torch.Tensor else action_id
+    # # Extract jig id from applicable actions
+    # jig_ids = torch.tensor([action.args[0] for action in applicable_actions._elements])
 
-    # Extract jig id and action id from applicable actions
-    jig_ids = torch.tensor([action.args[0] for action in applicable_actions._elements])
-    action_ids = torch.tensor([action.action_id for action in applicable_actions._elements])
+    # # Find indices where jig id and action id match
+    # match_indices = (jig_ids == jig_id)
 
-    # Find indices where jig id and action id match
-    match_indices = (jig_ids == jig_id) & (action_ids == action_id)
+    # # Set corresponding indices to 1
+    # mask[torch.tensor([destination_ids.index(obj) for obj in destination_objs[match_indices]], dtype=torch.int64)] = 1
 
     # Get destination index for matching actions
-    destination_index = destination_indexes[action_id]
-    destination_objs = torch.tensor([action.args[destination_index] if len(action.args) > destination_index else 0 for action in applicable_actions._elements])
+    destination_objs = torch.tensor([action.args[destination_indexes[action.action_id]] for action in applicable_actions._elements if action.action_id != 8])
 
     # Set corresponding indices to 1
-    mask[torch.tensor([destination_ids.index(obj) for obj in destination_objs[match_indices]], dtype=torch.int64)] = 1
-
-    # # Iterate over applicable actions and set corresponding indices to 1
-    # for action in applicable_actions._elements:
-    #     cur_jig_id = action.args[0]  # Extract jig id from action args
-    #     if cur_jig_id == jig_id and action.action_id == action_id:
-    #         destination_index = destination_indexes[action_id]
-    #         destination_obj = action.args[destination_index]
-    #         mask[destination_ids.index(destination_obj)] = 1
+    mask[torch.tensor([destination_ids.index(obj) for obj in destination_objs], dtype=torch.int64)] = 1
 
     return mask
             
     
-def generate_applicable_actions(jig, action, destination, domain, state):
+def generate_applicable_actions(jig, destination, domain, state):
         '''
         Details on state value
         1 = Beluga trailer, factory trailer, and hangar
@@ -176,28 +121,30 @@ def generate_applicable_actions(jig, action, destination, domain, state):
 
         '''
         
-        if action in [6]:  # case for complete beluga which destination is don't care
-            destination_index = 1
-        elif action in [1,2,4,7]:
-            destination_index = 2
-        elif action in [0,5]:
-            destination_index = 3
-        elif action in [3]:
-            destination_index = 4
-        else:
-            raise ValueError('Invalid action id')
+        # if action in [6]:  # case for complete beluga which destination is don't care
+        #     destination_index = 1
+        # elif action in [1,2,4,7]:
+        #     destination_index = 2
+        # elif action in [0,5]:
+        #     destination_index = 3
+        # elif action in [3]:
+        #     destination_index = 4
+        # else:
+        #     raise ValueError('Invalid action id')
+
+        destination_indexes = {
+        6: 1,  
+        1: 2, 2: 2, 4: 2, 7: 2,  
+        0: 3, 5: 3,
+        3: 4 
+        }
 
         jig_index = 0
 
         applicable_actions = domain.get_applicable_actions(state)._elements
         for a in applicable_actions:
-            if a.action_id == action and action == 8: # case of beluga-complete
+            if a.args[jig_index] == jig and a.args[destination_indexes[a.action_id]] == destination:  
                 return a
-
-             # case of other actions which require arguments for jigs and destination
-            if destination_index < len(a.args): # avoid out of bounds error when dealing with short argument action (e.g. action_id 2)
-                if a.args[jig_index] == jig and a.args[destination_index] == destination:  
-                    return a
 
         return None
 
