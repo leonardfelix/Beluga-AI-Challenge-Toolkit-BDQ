@@ -11,12 +11,13 @@ belugaAI:
   discount_factor: 0.99
   lr: 0.0001
   hidden_dims: 256
-  maximum_simulation_steps: 100
+  maximum_simulation_steps: 1000
   enable_double_DQN: True
   enable_dueling_DQN: True
   alpha: 0.0 # priority exponent (0 = uniform, 1 = highest priority first) deafult 0.6
   beta: 1.0 # importance-sampling correction (0 = no correction, 1 = perfect correction) defaut 0.4
   beta_increment: 0.0001 # rate of beta increase per episode default 0.0001
+  lr_decay_step: 300
 
 
 flappybird1:

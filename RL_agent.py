@@ -69,6 +69,7 @@ class Agent:
         self.alpha = instance_hyperparameters['alpha']
         self.beta = instance_hyperparameters['beta']
         self.beta_increment = instance_hyperparameters['beta_increment']
+        self.lr_decay_step = instance_hyperparameters['lr_decay_step']
 
         # define loss and optimiser
         self.loss_fn = torch.nn.MSELoss()
@@ -119,6 +120,8 @@ class Agent:
 
         # Set up the optimizer with the policy DQN parameters and learning rate
         self.optimiser = torch.optim.Adam(params=policy_dqn.parameters(), lr=self.lr, betas=(0.9, 0.999))
+        # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimiser, T_max=self.lr_decay_step, eta_min=1e-8)
+
 
         if is_training:
 
@@ -379,6 +382,7 @@ class Agent:
         # torch.nn.utils.clip_grad_norm_(policy_dqn.parameters(), 10.0)
 
         self.optimiser.step()
+        # self.scheduler.step()
 
         self.loss_history.append(loss.item())
 
@@ -429,7 +433,7 @@ class Agent:
         elif action_id in [3]:
             return 2
         else:
-            return -5 if new_state in states_visited else -(1/self.maximum_simulation_steps) 
+            return -10  if new_state in states_visited else -(1/self.maximum_simulation_steps) 
 
 
 if __name__ == "__main__":

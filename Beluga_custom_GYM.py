@@ -228,6 +228,11 @@ class ExampleBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
             state_array[0][i][0] = p
             j = 0
             for args in atom:
+                if j >= self.max_atom_args:
+                    raise RuntimeError(
+                        "Too many atoms args to store them in the state tensor; "
+                        "please increase max_atom_args"
+                    )
                 state_array[0][i][j : j + len(args)] = args
                 j += len(args)
             state_array[0][i][-1] = 1
@@ -653,55 +658,6 @@ if __name__ == "__main__":
 
     dql = Agent("belugaAI", domain, gym_compatible_domain)
     dql.run(is_training=True)
-
-        
-    # # run on gym environment ---------------------------
-    # done = False
-    # state = domain.reset()
-
-    # # get the output and number of output for each branch (jig, action_id, destination)
-    # jigs_ids = [domain.task.objects.index(obj) for obj in domain.task.objects if obj.startswith("jig")]     
-    # num_jigs = len(jigs_ids)
-
-    # destination_ids = get_valid_destination(domain) # return dict type destionation, with pair (destination_name: object_id)
-
-
-    
-    # while not done:
-
-    #     #policy
-    #     #Define DQN
-    #     jig = 1
-    #     jig_id = jigs_ids[jig]
-
-    #     # get action mask
-    #     action_mask(jig_id, domain, state)
-
-    #     action_id = 1
-
-    #     # get destination mask
-    #     destination = 0
-    #     destination_mask(action_id, domain, state)
-
-    #     test_action = generate_applicable_actions(jig, action_id, destination, domain, state)
-    #     print(gym_compatible_domain.make_state_array(state))
-    #     # array_state = gym_compatible_domain.make_state_array(state)
-    #     #random
-    #     action = domain.get_applicable_actions(state).sample()
-
-    #     # action = gym_compatible_domain.make_pddl_action(gym_compatible_domain.make_action_array(domain.get_applicable_actions(sa).sample()))
-    #     print(f"\nApplying action: {action}")
-    #     o = domain.step(action)
-
-    #     next_state = o.observation
-    #     reward = o.value.reward
-    #     cost = o.value.cost
-
-    #     done = o.termination
-    #     state = next_state
-    #     print(f"\nCurrent state: {state}")
-
-
 
 
     # IMPORTANT NOTE: we show here how to use RLlib on BelugaGymEnv which relies on scikit-decide's
