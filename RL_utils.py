@@ -38,7 +38,7 @@ def jig_mask(destination_id, domain, state):
     return mask
     
 
-def destination_mask(domain, state):
+def destination_mask(domain, state, destination_ids):
     
     """
     Generates a mask tensor indicating which destinations are applicable for a given jig and action in a given state.
@@ -62,8 +62,6 @@ def destination_mask(domain, state):
         3. destination index = 3 for action: load_beluga; deliver-to-hangar; stack-rack.                    Index of [0,3,5]
     """
 
-    destination_ids = get_valid_destination(domain)
-
     # represents each of the destination.
     mask = torch.zeros(len(destination_ids), dtype=torch.bool)
 
@@ -77,15 +75,6 @@ def destination_mask(domain, state):
         0: 3, 5: 3,
         3: 4 
     }
-
-    # # Extract jig id from applicable actions
-    # jig_ids = torch.tensor([action.args[0] for action in applicable_actions._elements])
-
-    # # Find indices where jig id and action id match
-    # match_indices = (jig_ids == jig_id)
-
-    # # Set corresponding indices to 1
-    # mask[torch.tensor([destination_ids.index(obj) for obj in destination_objs[match_indices]], dtype=torch.int64)] = 1
 
     # Get destination index for matching actions
     destination_objs = torch.tensor([action.args[destination_indexes[action.action_id]] for action in applicable_actions._elements if action.action_id != 8])
@@ -177,13 +166,15 @@ def get_object_name(domain, obj_id):
         return objects[obj_id]
     return None  # Return None if out of bounds
 
-def get_valid_destination(domain):
+def get_valid_destination(domain, state):
     destination = []
     objects = domain.task.objects
     for index, obj in enumerate(objects):
-        if obj.startswith(("beluga_trailer","factory_trailer","rack", "pl", "beluga")):
+        if obj.startswith(("beluga_trailer","factory_trailer","rack", "pl")):
             destination.append(index)
 
-    return destination
+    beluga_ids = [beluga_outgoing[-1] for beluga_outgoing in state.atoms[8] if 2 not in beluga_outgoing] # add beluga that have any outgoing, add the ones that doesn't have dummy jig
+
+    return destination + beluga_ids
 
 
