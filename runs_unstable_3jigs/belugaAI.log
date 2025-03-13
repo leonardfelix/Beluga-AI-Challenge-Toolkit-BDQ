@@ -1,0 +1,4 @@
+Training 03-13 14:25:08: Training starting...Training 03-13 14:25:28: New best reward: -9999999 Time taken: 0:00:20.015026 Episode: 0 Saved memory size: 51 out of 100000
+Training 03-13 14:25:30: New best reward: -207.02200000000005 Time taken: 0:00:22.285885 Episode: 1 Saved memory size: 88 out of 100000
+Training 03-13 14:25:30: New best reward: -97.01900000000005 Time taken: 0:00:22.701473 Episode: 3 Saved memory size: 158 out of 100000
+Training 03-13 14:25:49: New best reward: -7.011999999999997 Time taken: 0:00:41.582677 Episode: 83 Saved memory size: 3344 out of 100000

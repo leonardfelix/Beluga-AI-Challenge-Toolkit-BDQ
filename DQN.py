@@ -33,14 +33,14 @@ class DuelingDQN(nn.Module):
         self.fc_value = nn.Linear(hidden_dim, hidden_dim//2)
         self.value = nn.Linear(hidden_dim//2, 1)
 
-        # # Advantage network
-        # self.fc_jig_advantage = nn.Linear(hidden_dim, hidden_dim//2)
-        # self.jig_advantage = nn.Linear(hidden_dim//2, jig_dim)
+        # Advantage network
+        self.fc_jig_advantage = nn.Linear(hidden_dim, hidden_dim//2)
+        self.jig_advantage = nn.Linear(hidden_dim//2, jig_dim)
 
         self.fc_destination_advantage = nn.Linear(hidden_dim, hidden_dim//2)
         self.destination_advantage = nn.Linear(hidden_dim//2, destination_dim)
 
-        # # Register hook to scale gradients
+        # Register hook to scale gradients
         # self.fc1.weight.register_hook(scale_grad_hook)
         # self.fc2.weight.register_hook(scale_grad_hook)
         # self.fc3.weight.register_hook(scale_grad_hook)
@@ -48,7 +48,7 @@ class DuelingDQN(nn.Module):
         # self.fc5.weight.register_hook(scale_grad_hook)
         # self.fc6.weight.register_hook(scale_grad_hook)
 
-        self.init_weights()
+        # self.init_weights()
 
     def forward(self, x):
         if x.shape[0] > 1:  # Only apply BatchNorm if training for batch
@@ -70,22 +70,22 @@ class DuelingDQN(nn.Module):
         v = F.relu(self.fc_value(x))
         value = self.value(v)
 
-        # # Compute the advantages for each bracnh of action, jig and destination
-        # a_jig = F.relu(self.fc_jig_advantage(x))
-        # advantage_jig = self.jig_advantage(a_jig)
+        # Compute the advantages for each bracnh of action, jig and destination
+        a_jig = F.relu(self.fc_jig_advantage(x))
+        advantage_jig = self.jig_advantage(a_jig)
 
         a_destination = F.relu(self.fc_destination_advantage(x))
         advantage_destination = self.destination_advantage(a_destination)
 
         # Compute Q-values for each dimension separately
-        # Q_jig = value + (advantage_jig - advantage_jig.mean(dim=1, keepdim=True))
+        Q_jig = value + (advantage_jig - advantage_jig.mean(dim=1, keepdim=True))
         Q_destination = value + (advantage_destination - advantage_destination.mean(dim=1, keepdim=True))        
 
-        return Q_destination 
+        return Q_destination, Q_jig 
 
-    def init_weights(self):     # Xavier initialisation
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.xavier_uniform_(m.weight) 
-                nn.init.zeros_(m.bias)            
+    # def init_weights(self):     # Xavier initialisation
+    #     for m in self.modules():
+    #         if isinstance(m, nn.Linear):
+    #             nn.init.xavier_uniform_(m.weight) 
+    #             nn.init.zeros_(m.bias)            
 
