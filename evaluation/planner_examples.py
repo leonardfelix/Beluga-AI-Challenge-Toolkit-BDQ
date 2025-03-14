@@ -12,7 +12,6 @@ from encoder.pddl_encoding import DomainEncoding, encode
 from skd_domains.skd_pddl_domain import SkdPDDLDomain
 from skd_domains.skd_base_domain import Action, SkdBaseDomain
 from skdecide.hub.solver.lazy_astar import LazyAstar
-from skdecide.hub.solver.astar import Astar
 from skdecide import utils
 import json
 

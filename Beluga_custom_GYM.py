@@ -31,6 +31,8 @@ from skd_domains.skd_spddl_domain import SkdSPDDLDomain
 from skd_domains.skd_gym_domain import BelugaGymCompatibleDomain, BelugaGymEnv
 
 from generate_instance import ProbConfig, main as encode_json
+from evaluation.planner_examples import _skd_action_to_beluga_action
+from evaluation.planner_api import BelugaPlan
 
 from RL_agent import Agent
 
@@ -657,8 +659,22 @@ if __name__ == "__main__":
 
 
     dql = Agent("belugaAI", domain, gym_compatible_domain)
-    dql.run(is_training=True)
+    best_actions, best_reward = dql.run(is_training=True)
+    print(best_reward)
 
+    # Translate the plan
+    res = BelugaPlan()
+    for a in best_actions:
+        ba = _skd_action_to_beluga_action(action=a, domain=domain, classic=True)
+        res.append(ba)
+
+        print(a)
+
+    json_res = res.to_json_obj()
+
+    # Write to a file
+    with open("runs/output.json", "w") as json_file:
+        json.dump(json_res, json_file, indent=4)
 
     # IMPORTANT NOTE: we show here how to use RLlib on BelugaGymEnv which relies on scikit-decide's
     # automated mechanism to cast scikit-decide domains to gymnasium environments. However, the connection
@@ -669,47 +685,3 @@ if __name__ == "__main__":
     # do the 2 following tasks: 1) specialize the BelugaGymCompatibleDomain class to your tensor representation
     # needs; 2) pass this specialized class to the BelugaGymEnv class, which is your gym environment.
 
-
-
-    
-    # config = (
-    #     PPOConfig()
-    #     .api_stack(
-    #         enable_rl_module_and_learner=False,
-    #         enable_env_runner_and_connector_v2=False,
-    #     )
-    #     .environment(
-    #         env=BelugaGymEnv,
-    #         env_config={"domain": gym_compatible_domain},
-    #     )
-    #     .env_runners(num_env_runners=1)
-    # )
-
-    # algo = config.build()
-    # algo.train()
-
-    # print("Simulating RL learned policy")
-    # s = domain.reset()
-    # print(f"\nInitial state: {s}")
-    # step = 0
-    # while not domain._is_terminal(s) and step < (
-    #     max_simulation_steps if max_simulation_steps else 100
-    # ):
-    #     a = gym_compatible_domain.make_pddl_action(
-    #         algo.compute_single_action(gym_compatible_domain.make_state_array(s))
-    #     )
-    #     if domain.get_applicable_actions(s).contains(a):
-    #         print(f"\nApplying action: {a}")
-    #         o = domain.step(a)
-    #         s = o.observation
-    #         print(f"\nCurrent state: {s}")
-    #         step += 1
-    #     else:
-    #         try:  # inferred action's integer args might correspond to non-existing PDDL objects
-    #             print(f"\nInapplicable action: {a} - exiting")
-    #         except IndexError:
-    #             print(
-    #                 f"\nInapplicable action: {gym_compatible_domain.make_action_array(a)} - exiting"
-    #             )
-    #         break
-    # domain.cleanup()

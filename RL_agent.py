@@ -1,23 +1,19 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
-from math import exp
 
 from DQN import DuelingDQN
 from prioritised_experience_replay import PrioritisedReplayMemory
-import itertools
 
 import yaml
 import random
-
 import matplotlib
 import matplotlib.pyplot as plt
-
 from datetime import datetime, timedelta
 import os
-import argparse
 
 from RL_utils import generate_applicable_actions, jig_mask, destination_mask, get_valid_destination, extract_from_actions
+from evaluation.planner_api import BelugaPlan
 
 DATE_FORMAT = "%m-%d %H:%M:%S"
 
@@ -64,12 +60,11 @@ class Agent:
         self.lr = instance_hyperparameters['lr']
         self.hidden_dims = instance_hyperparameters['hidden_dims']
         self.maximum_simulation_steps = instance_hyperparameters['maximum_simulation_steps']
-        self.enable_double_DQN = instance_hyperparameters['enable_double_DQN']
-        self.enable_dueling_DQN = instance_hyperparameters['enable_dueling_DQN']
         self.alpha = instance_hyperparameters['alpha']
         self.beta = instance_hyperparameters['beta']
         self.beta_increment = instance_hyperparameters['beta_increment']
-        self.lr_decay_step = instance_hyperparameters['lr_decay_step']
+        # self.lr_decay_step = instance_hyperparameters['lr_decay_step']
+        self.episode_run = instance_hyperparameters['episode_run']
 
         # define loss and optimiser
         self.loss_fn = torch.nn.MSELoss()
@@ -118,13 +113,14 @@ class Agent:
 
         base_reward = 10
         rewards_per_episode = []
+        best_actions = None
         
         # Initialize the policy DQN with the specified dimensions and move it to the appropriate device
         policy_dqn = DuelingDQN(state_dim=num_states, jig_dim=num_jigs, destination_dim=num_destination, hidden_dim=self.hidden_dims).to(device)
 
         # Set up the optimizer with the policy DQN parameters and learning rate
         self.optimiser = torch.optim.Adam(params=policy_dqn.parameters(), lr=self.lr, betas=(0.9, 0.999))
-        # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimiser, T_max=self.lr_decay_step, eta_min=1e-8)
+        # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimiser, T_max=self.maximum_simulation_steps, eta_min=1e-8)
 
 
         if is_training:
@@ -137,9 +133,6 @@ class Agent:
                 print(f"Checkpoint loaded from {self.checkpoint}")
             else:
                 print("Training from scratch...")
-
-            if self.enable_double_DQN:
-                print("Double DQN enabled")
                 
             # set up the memory, target network, and step count
             # memory = ReplayMemory(self.replay_memory_size)
@@ -174,7 +167,7 @@ class Agent:
 
 
         # run the episodes
-        for episode in itertools.count():
+        for episode in range(self.episode_run):
             state_pddl = domain.reset()
             
             terminated = False
@@ -183,6 +176,8 @@ class Agent:
 
             # list to keep track of the state visited for reward calculations
             states_visited = []
+
+            taken_actions = []
 
             while (not terminated and simulation_step < self.maximum_simulation_steps):
     
@@ -204,6 +199,9 @@ class Agent:
                     reward = self.get_reward(states_visited, new_state_pddl, action.action_id, terminated) 
                     state_pddl = new_state_pddl
 
+                    # append action
+                    taken_actions.append(action)
+
                     # log action
                     print(f"Action: {action} Reward: {reward}")
                     continue
@@ -212,28 +210,18 @@ class Agent:
                 # Next action using epsilon-greedy
                 if is_training and random.random() < epsilon:
                     action = available_actions.sample()
-                    
                     jig_id_obj, action_id, destination_id_obj = extract_from_actions(action)
-
-                    # convert from object index to raw index (start from 0)
                     jig_id = jigs_ids.index(jig_id_obj)
                     destination_id = destination_ids.index(destination_id_obj)
-                    
 
                 else:
                     with torch.no_grad():
                         destination, jig = policy_dqn(state.unsqueeze(0))   #this output jig_id, action_id, and destination_id from 0
-
                         destination_m = destination_mask(domain, state_pddl, destination_ids)
                         destination_id = (destination.masked_fill(~destination_m, LARGE_NEG)).argmax().item()
                         destination_id_obj = destination_ids[destination_id]
 
                         jig_m = jig_mask(destination_id_obj, domain, state_pddl)
-
-                        # # Get indices where the value is 1
-                        # valid_indices = torch.nonzero(jig_m, as_tuple=True)[0]
-                        # jig_id = valid_indices[torch.randint(0, valid_indices.shape[0], (1,))].item()
-
                         jig_id = (jig.masked_fill(~jig_m, LARGE_NEG)).argmax().item()
                         jig_id_obj = jigs_ids[jig_id]
                     
@@ -250,6 +238,9 @@ class Agent:
                     new_state_pddl = o.observation
                     terminated = o.termination
                     reward = self.get_reward(states_visited, new_state_pddl, action.action_id, terminated) 
+
+                    # append action
+                    taken_actions.append(action)
 
                     # # set hard limit to state repetition
                     # if reward == -5:
@@ -286,16 +277,13 @@ class Agent:
                     torch.save(policy_dqn.state_dict(), self.MODEL_FILE)
                     best_reward = episode_reward
 
-                    # # write into a file the memory contents
-                    # memory.save_memory_to_file(self.DATA_FILE)
-
+                    best_actions = tuple(taken_actions)
 
                 #update graph every 10 second
                 current_time = datetime.now()
                 if current_time - last_graph_update > timedelta(seconds=10):
                     self.save_graph(rewards_per_episode, epsilon_history, self.loss_history)
                     last_graph_update = current_time
-
 
                 # exponential decay for epsilon
                 epsilon = max(self.epsilon_end, self.epsilon_decay * epsilon)
@@ -306,13 +294,14 @@ class Agent:
 
                 if len(memory) > self.batch_size:
                     batch = memory.sample(self.batch_size, beta)
-
                     self.optimise(policy_dqn, target_dqn, batch, memory, destination_ids, domain)
 
                     # sync the target network with respect to the policy network
                     if step_count > self.network_sync_rate:
                         target_dqn.load_state_dict(policy_dqn.state_dict())
                         step_count = 0
+
+        return best_actions, best_reward
 
     def optimise(self, policy_dqn, target_dqn, batch, memory, destination_ids, domain):
         """
@@ -341,7 +330,7 @@ class Agent:
         best_destination = torch.empty(batch_size, dtype=torch.int64)
 
         with torch.no_grad():
-            # Compute next Q-values for all states  NON DUELING_DQN        
+            # Compute next Q-values for all states    
             Q_next_destination, Q_next_jig = policy_dqn(new_states)
 
             # Compute best destinations
@@ -349,14 +338,9 @@ class Agent:
             best_destination = torch.argmax(Q_next_destination.masked_fill(~torch.stack(destination_masks), LARGE_NEG), dim=1)
             best_destination_obj = destination_ids_tensor[best_destination]
 
-
             # Compute best Jigs
             jig_masks = [jig_mask(destination_id, domain, new_state_pddl) for destination_id, new_state_pddl in zip(best_destination_obj, new_state_pddls)]
             best_jig = torch.argmax(Q_next_jig.masked_fill(~torch.stack(jig_masks), LARGE_NEG), dim=1)
-
-            
-            # target_Q_jig = Q_next_jig.gather(1, best_jig.unsqueeze(1)).squeeze(1)
-            # target_Q_destination = Q_next_destination.gather(1, best_destination.unsqueeze(1)).squeeze(1)
 
             # # Use target network to evaluate best actions (Duelling DQN)
             Q_target_destination, Q_target_jig = target_dqn(new_states)
@@ -415,11 +399,9 @@ class Agent:
         plt.title("Reward per episode")
 
         # plt.plot(loss_history)
-        # plt.xlabel("Loss")
-        # plt.ylabel("Reward")
+        # plt.xlabel("Episode")
+        # plt.ylabel("Loss")
         # plt.title("Loss per episode")
-
-
 
         # plot epsilon
         plt.subplot(1,2,2)
@@ -442,18 +424,3 @@ class Agent:
             return 2
         else:
             return -10  if new_state in states_visited else -(1/self.maximum_simulation_steps) 
-
-
-if __name__ == "__main__":
-    # parse command line inputs
-    parser = argparse.ArgumentParser()
-    parser.add_argument("gym_environment", help="Name of the gym environment")
-    parser.add_argument("--train", help="Train the agent", action="store_true")
-    parser.add_argument("--render", help="Render the environment", action="store_true")
-    args = parser.parse_args()
-    
-    dql = Agent(args.gym_environment)
-    if args.train:
-        dql.run(is_training=True, render=args.render)
-    else:
-        dql.run(is_training=False, render=args.render)  

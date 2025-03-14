@@ -17,22 +17,10 @@ class DuelingDQN(nn.Module):
         self.fc2 = nn.Linear(hidden_dim*2, hidden_dim)
         self.bn2 = nn.BatchNorm1d(hidden_dim)
 
-        # self.fc3 = nn.Linear(hidden_dim*2, hidden_dim)
-        # self.bn3 = nn.BatchNorm1d(hidden_dim)
-
-        # self.fc4 = nn.Linear(hidden_dim, hidden_dim)
-        # self.bn4 = nn.BatchNorm1d(hidden_dim)
-
-        # self.fc5 = nn.Linear(hidden_dim, hidden_dim)
-        # self.bn5 = nn.BatchNorm1d(hidden_dim)
-
-        # self.fc6 = nn.Linear(hidden_dim, hidden_dim)
-        # self.bn6 = nn.BatchNorm1d(hidden_dim)
-
         # Value network
         self.fc_value = nn.Linear(hidden_dim, hidden_dim//2)
         self.value = nn.Linear(hidden_dim//2, 1)
-
+    
         # Advantage network
         self.fc_jig_advantage = nn.Linear(hidden_dim, hidden_dim//2)
         self.jig_advantage = nn.Linear(hidden_dim//2, jig_dim)
@@ -88,4 +76,3 @@ class DuelingDQN(nn.Module):
     #         if isinstance(m, nn.Linear):
     #             nn.init.xavier_uniform_(m.weight) 
     #             nn.init.zeros_(m.bias)            
-
