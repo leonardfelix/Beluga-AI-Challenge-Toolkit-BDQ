@@ -176,8 +176,10 @@ class Agent:
 
             # list to keep track of the state visited for reward calculations
             states_visited = []
-
+            repeated_states = 0
             taken_actions = []
+
+            
 
             while (not terminated and simulation_step < self.maximum_simulation_steps):
     
@@ -242,9 +244,14 @@ class Agent:
                     # append action
                     taken_actions.append(action)
 
-                    # # set hard limit to state repetition
-                    # if reward == -5:
-                    #     terminated = True
+                    # set soft limit to state repetition cycles (terminate the episode after more than 4 consecutive repetitions)
+                    if reward == -10:
+                        if repeated_states > 4:
+                            terminated = True
+                        else:
+                            repeated_states += 1
+                    else:
+                        repeated_states = 0
 
                 episode_reward += reward
 
@@ -300,6 +307,17 @@ class Agent:
                     if step_count > self.network_sync_rate:
                         target_dqn.load_state_dict(policy_dqn.state_dict())
                         step_count = 0
+
+        # log finished training output
+        log_message = f"Training done in: {datetime.now() - start_time} Best reward: {best_reward} Best actions:\n"
+        print(log_message)
+        with open(self.LOG_FILE, "a") as file:
+            file.write(log_message)
+            
+        for a in best_actions:
+            print(a)
+            with open(self.LOG_FILE, "a") as file:
+                file.write(str(a) + "\n")
 
         return best_actions, best_reward
 

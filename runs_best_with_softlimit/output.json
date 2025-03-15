@@ -1,0 +1,120 @@
+[
+    {
+        "name": "unload_beluga",
+        "j": "jig0001",
+        "b": "beluga1",
+        "t": "beluga_trailer_1"
+    },
+    {
+        "name": "put_down_rack",
+        "j": "jig0001",
+        "t": "beluga_trailer_1",
+        "r": "rack01",
+        "s": "bside"
+    },
+    {
+        "name": "pick_up_rack",
+        "j": "jig0001",
+        "t": "factory_trailer_1",
+        "r": "rack01",
+        "s": "fside"
+    },
+    {
+        "name": "deliver_to_hangar",
+        "j": "jig0001",
+        "h": "hangar2",
+        "t": "factory_trailer_1",
+        "pl": "pl0"
+    },
+    {
+        "name": "unload_beluga",
+        "j": "jig0002",
+        "b": "beluga1",
+        "t": "beluga_trailer_1"
+    },
+    {
+        "name": "switch_to_next_beluga"
+    },
+    {
+        "name": "put_down_rack",
+        "j": "jig0002",
+        "t": "beluga_trailer_1",
+        "r": "rack01",
+        "s": "bside"
+    },
+    {
+        "name": "pick_up_rack",
+        "j": "jig0002",
+        "t": "factory_trailer_1",
+        "r": "rack01",
+        "s": "fside"
+    },
+    {
+        "name": "deliver_to_hangar",
+        "j": "jig0002",
+        "h": "hangar3",
+        "t": "factory_trailer_1",
+        "pl": "pl1"
+    },
+    {
+        "name": "get_from_hangar",
+        "j": "jig0002",
+        "h": "hangar3",
+        "t": "factory_trailer_1"
+    },
+    {
+        "name": "put_down_rack",
+        "j": "jig0002",
+        "t": "factory_trailer_1",
+        "r": "rack01",
+        "s": "fside"
+    },
+    {
+        "name": "pick_up_rack",
+        "j": "jig0002",
+        "t": "beluga_trailer_1",
+        "r": "rack01",
+        "s": "bside"
+    },
+    {
+        "name": "load_beluga",
+        "j": "jig0002",
+        "b": "beluga2",
+        "t": "beluga_trailer_1"
+    },
+    {
+        "name": "get_from_hangar",
+        "j": "jig0001",
+        "h": "hangar2",
+        "t": "factory_trailer_1"
+    },
+    {
+        "name": "put_down_rack",
+        "j": "jig0001",
+        "t": "factory_trailer_1",
+        "r": "rack01",
+        "s": "fside"
+    },
+    {
+        "name": "pick_up_rack",
+        "j": "jig0001",
+        "t": "beluga_trailer_1",
+        "r": "rack01",
+        "s": "bside"
+    },
+    {
+        "name": "load_beluga",
+        "j": "jig0001",
+        "b": "beluga2",
+        "t": "beluga_trailer_1"
+    },
+    {
+        "name": "switch_to_next_beluga"
+    },
+    {
+        "name": "unload_beluga",
+        "j": "jig0003",
+        "b": "beluga3",
+        "t": "beluga_trailer_1"
+    }
+]

@@ -646,6 +646,10 @@ if __name__ == "__main__":
     domain_factory = lambda: SkdPDDLDomain(inst, problem_name, problem_folder, classic=classic)
     domain = domain_factory()
 
+    state = domain.reset()
+    max_atoms = max(sum(len(args) for args in atom) for atom in state.atoms)
+
+
     print(
         "Creating Gym-compatible domain, i.e. containing array-like spaces for actions and states"
     )
@@ -654,21 +658,18 @@ if __name__ == "__main__":
         max_fluent_value=0,
         max_nb_atoms_or_fluents=10,
         max_nb_steps=0,
-        max_atom_args = 15
+        max_atom_args = max_atoms*2
     )
 
 
     dql = Agent("belugaAI", domain, gym_compatible_domain)
     best_actions, best_reward = dql.run(is_training=True)
-    print(best_reward)
 
     # Translate the plan
     res = BelugaPlan()
     for a in best_actions:
         ba = _skd_action_to_beluga_action(action=a, domain=domain, classic=True)
         res.append(ba)
-
-        print(a)
 
     json_res = res.to_json_obj()
 
