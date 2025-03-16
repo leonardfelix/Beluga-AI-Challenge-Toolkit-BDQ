@@ -1,7 +1,6 @@
 belugaAI:
   env_id: BelugaAI
   checkpoint: ""
-  prior_data: ""
   replay_memory_size: 100000
   batch_size: 32
   epsilon_start: 1.0
@@ -16,25 +15,3 @@ belugaAI:
   beta: 1.0 # importance-sampling correction (0 = no correction, 1 = perfect correction) defaut 0.4
   beta_increment: 0.0001 # rate of beta increase per episode default 0.0001
   episode_run: 500
-
-##  best belugaAI for _three_jigs
-# belugaAI:
-#   env_id: BelugaAI
-#   checkpoint: ""
-#   prior_data: ""
-#   replay_memory_size: 100000
-#   batch_size: 32
-#   epsilon_start: 1.0
-#   epsilon_decay: 0.995
-#   epsilon_end: 0.05
-#   network_sync_rate: 100
-#   discount_factor: 0.99
-#   lr: 0.0001
-#   hidden_dims: 256
-#   maximum_simulation_steps: 1000
-#   enable_double_DQN: True
-#   enable_dueling_DQN: True
-#   alpha: 0.0 # priority exponent (0 = uniform, 1 = highest priority first) deafult 0.6
-#   beta: 1.0 # importance-sampling correction (0 = no correction, 1 = perfect correction) defaut 0.4
-#   beta_increment: 0.0001 # rate of beta increase per episode default 0.0001
-#   lr_decay_step: 300

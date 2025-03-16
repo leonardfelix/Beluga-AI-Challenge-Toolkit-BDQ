@@ -61,14 +61,13 @@ def destination_mask(domain, state, destination_ids):
         2. destination index = 2 for action: unload-beluga; get-from-hangar; put-down-rack; unstack-rack .  Index of [1,2,4,7]
         3. destination index = 3 for action: load_beluga; deliver-to-hangar; stack-rack.                    Index of [0,3,5]
     """
-
-    # represents each of the destination.
+    # Represents each of the destination.
     mask = torch.zeros(len(destination_ids), dtype=torch.bool)
 
     # Get applicable actions
     applicable_actions = domain.get_applicable_actions(state)
 
-    # dict for destination id depending on action_id
+    # Dict for destination id depending on action_id
     destination_indexes = {
         6: 1,  
         1: 2, 2: 2, 4: 2, 7: 2,  
@@ -109,18 +108,6 @@ def generate_applicable_actions(jig, destination, domain, state):
         3. destination index = 3 for action: load_beluga; deliver-to-hangar; stack-rack.                    Index of [0,3,5]
 
         '''
-        
-        # if action in [6]:  # case for complete beluga which destination is don't care
-        #     destination_index = 1
-        # elif action in [1,2,4,7]:
-        #     destination_index = 2
-        # elif action in [0,5]:
-        #     destination_index = 3
-        # elif action in [3]:
-        #     destination_index = 4
-        # else:
-        #     raise ValueError('Invalid action id')
-
         destination_indexes = {
         6: 1,  
         1: 2, 2: 2, 4: 2, 7: 2,  
@@ -139,7 +126,7 @@ def generate_applicable_actions(jig, destination, domain, state):
 
 
 def extract_from_actions(action):
-        if action.action_id in [6]:  # case for complete beluga which destination is don't care
+        if action.action_id in [6]:  
             destination_index = 1
         elif action.action_id in [1,2,4,7]:
             destination_index = 2
@@ -147,7 +134,7 @@ def extract_from_actions(action):
             destination_index = 3
         elif action.action_id in [3]:
             destination_index = 4
-        elif action.action_id in [8]:
+        elif action.action_id in [8]:   # Case for complete beluga which destination is don't care
             destination_index = None
         else:
             raise ValueError('Invalid action id')
@@ -164,7 +151,7 @@ def get_object_name(domain, obj_id):
     objects = domain.task.objects  # List of object names indexed by their IDs
     if 0 <= obj_id < len(objects):
         return objects[obj_id]
-    return None  # Return None if out of bounds
+    return None  # Return None if not found
 
 def get_valid_destination(domain, state):
     destination = []
@@ -173,7 +160,7 @@ def get_valid_destination(domain, state):
         if obj.startswith(("beluga_trailer","factory_trailer","rack", "pl")):
             destination.append(index)
 
-    beluga_ids = [beluga_outgoing[-1] for beluga_outgoing in state.atoms[8] if 2 not in beluga_outgoing] # add beluga that have any outgoing, add the ones that doesn't have dummy jig
+    beluga_ids = [beluga_outgoing[-1] for beluga_outgoing in state.atoms[8] if 2 not in beluga_outgoing] # Add beluga that have any outgoing; add the ones that doesn't have dummy jig (2).
 
     return destination + beluga_ids
 

@@ -37,7 +37,7 @@ from evaluation.planner_api import BelugaPlan
 from RL_agent import Agent
 
 
-class ExampleBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
+class CustomBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
     """This is an example specialization of the BelugaGymCompatibleDomain class
     which transforms PDDL-style states and actions from the original Beluga
     scikit-decide domains to tensors to be used with deep reinforcement learning
@@ -239,77 +239,6 @@ class ExampleBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
                 j += len(args)
             state_array[0][i][-1] = 1
             i += 1
-
-        # i = 0
-        # for p, atom in enumerate(self.skd_beluga_domain.task.static_facts):
-        #     for args in atom:
-        #         if i >= self.max_nb_atoms_or_fluents:
-        #             raise RuntimeError(
-        #                 "Too many static atoms to store them in the state tensor; "
-        #                 "please increase max_nb_atoms_or_fluents"
-        #             )
-        #         state_array[1][i][0] = p
-        #         state_array[1][i][1 : 1 + len(args)] = args
-        #         state_array[1][i][-1] = 1
-        #         i += 1
-            
-        # state_array: ArrayLike = []
-        # i = 0
-        # for p, atom in enumerate(pddl_state.atoms):
-        #     if 2 <= p and p <= 3:    # append states for object id, rack available space, and jigs position
-        #         for args in sorted(atom):
-        #             if i >= self.max_nb_atoms_or_fluents:
-        #                 raise RuntimeError(
-        #                     "Too many state atoms to store them in the state tensor; "
-        #                     "please increase max_nb_atoms_or_fluents"
-        #                 )
-        #             state_array += args
-        #             i += 1
-
-        # # append the rest with -1
-        # for i in range (len(state_array), len(self.skd_beluga_domain.task.objects)//3):
-        #     state_array.append(-1)
-    
-        # i = 0
-        # for p, atom in enumerate(self.skd_beluga_domain.task.static_facts):
-        #     for args in atom:
-        #         if i >= self.max_nb_atoms_or_fluents:
-        #             raise RuntimeError(
-        #                 "Too many static atoms to store them in the state tensor; "
-        #                 "please increase max_nb_atoms_or_fluents"
-        #             )
-        #         state_array[0][i][0] = p
-        #         state_array[0][i][1 : 1 + len(args)] = args
-        #         state_array[0][i][-1] = 1
-        #         i += 1
-        # i = 0
-        # for p, atom in enumerate(pddl_state.atoms):
-        #     for args in atom:
-        #         if i >= self.max_nb_atoms_or_fluents:
-        #             raise RuntimeError(
-        #                 "Too many state atoms to store them in the state tensor; "
-        #                 "please increase max_nb_atoms_or_fluents"
-        #             )
-        #         state_array[1][i][0] = p
-        #         state_array[1][i][1 : 1 + len(args)] = args
-        #         state_array[1][i][-1] = 1
-        #         i += 1
-        # i = 0
-        # for f, fluent in enumerate(pddl_state.fluents):
-        #     for args, val in fluent:
-        #         if i >= self.max_nb_atoms_or_fluents:
-        #             raise RuntimeError(
-        #                 "Too many state fluents to store them in the state tensor; "
-        #                 "please increase max_nb_atoms_or_fluents"
-        #             )
-        #         state_array[2][i][0] = f
-        #         state_array[2][i][1 : 1 + len(args)] = args
-        #         state_array[2][i][-1] = val
-        #         i += 1]
-
-        # # convert all object id to the input id
-        # state_array = [jig_ids.index(obj)  if obj in jig_ids else obj for obj in state_array]
-        # state_array = [destination_ids.index(obj) if obj in destination_ids else obj for obj in state_array]
            
         return state_array.flatten()
 
@@ -633,34 +562,33 @@ if __name__ == "__main__":
             )
         )
     )
-    # domain_factory = lambda: (
-    #     SkdPPDDLDomain(inst, problem_name, problem_folder)
-    #     if args.probabilistic and args.probabilistic_model == "ppddl"
-    #     else (
-    #         SkdSPDDLDomain(inst, problem_name, problem_folder, classic=classic)
-    #         if args.probabilistic and args.probabilistic_model == "arrivals"
-    #         else SkdPDDLDomain(inst, problem_name, problem_folder, classic=classic)
-    #     )
-    # )
-    print(inst)
-    domain_factory = lambda: SkdPDDLDomain(inst, problem_name, problem_folder, classic=classic)
+    domain_factory = lambda: (
+        SkdPPDDLDomain(inst, problem_name, problem_folder)
+        if args.probabilistic and args.probabilistic_model == "ppddl"
+        else (
+            SkdSPDDLDomain(inst, problem_name, problem_folder, classic=classic)
+            if args.probabilistic and args.probabilistic_model == "arrivals"
+            else SkdPDDLDomain(inst, problem_name, problem_folder, classic=classic)
+        )
+    )
     domain = domain_factory()
 
+    '''
+    --- Train the agent ---
+    '''
     state = domain.reset()
     max_atoms = max(sum(len(args) for args in atom) for atom in state.atoms)
-
 
     print(
         "Creating Gym-compatible domain, i.e. containing array-like spaces for actions and states"
     )
-    gym_compatible_domain = ExampleBelugaGymCompatibleDomain(
+    gym_compatible_domain = CustomBelugaGymCompatibleDomain(
         skd_beluga_domain=domain,
         max_fluent_value=0,
         max_nb_atoms_or_fluents=10,
         max_nb_steps=0,
         max_atom_args = max_atoms*2
     )
-
 
     dql = Agent("belugaAI", domain, gym_compatible_domain)
     best_actions, best_reward = dql.run(is_training=True)
@@ -673,16 +601,6 @@ if __name__ == "__main__":
 
     json_res = res.to_json_obj()
 
-    # Write to a file
+    # Write JSON plan to a file
     with open("runs/output.json", "w") as json_file:
         json.dump(json_res, json_file, indent=4)
-
-    # IMPORTANT NOTE: we show here how to use RLlib on BelugaGymEnv which relies on scikit-decide's
-    # automated mechanism to cast scikit-decide domains to gymnasium environments. However, the connection
-    # to RLlib can also be done automatically by scikit-decide via scikit-decide's RayRLlib solver without
-    # explicitly creating the exported BelugaGymEnv (not demonstrated here since most RL people will most
-    # probably train the Beluga environment on their own RL agent outside scikit-decide or even RLlib).
-    # If you just want to have a gymnasium environment on which to train your RL agent,
-    # do the 2 following tasks: 1) specialize the BelugaGymCompatibleDomain class to your tensor representation
-    # needs; 2) pass this specialized class to the BelugaGymEnv class, which is your gym environment.
-

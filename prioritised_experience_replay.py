@@ -36,14 +36,6 @@ class PrioritisedReplayMemory:
     def update_priorities(self, indices, td_errors):
         for i, error in zip(indices, td_errors):
             self.priorities[i] = abs(error.item()) + self.epsilon  # Avoid zero priority
-
-    def save_memory_to_file(self, filename):
-        with open(filename, 'wb') as file:
-            pickle.dump(self.memory, file)
-
-    def load_memory_from_file(self, filename):
-        with open(filename, 'rb') as file:
-            self.memory = pickle.load(file)
     
     def __len__(self):
         return len(self.memory)

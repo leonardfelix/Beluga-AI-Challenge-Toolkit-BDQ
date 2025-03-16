@@ -14,5 +14,4 @@ belugaAI:
   lr: 0.0001
   maximum_simulation_steps: 1000
   network_sync_rate: 100
-  prior_data: ''
   replay_memory_size: 100000

@@ -5,7 +5,6 @@ import torch.nn.functional as F
 def scale_grad_hook(grad):
     return grad * (1 / 3)  # Scale gradients before entering shared layers
 
-
 class DuelingDQN(nn.Module):
 
     def __init__(self, state_dim, jig_dim, destination_dim, hidden_dim=256):
@@ -31,10 +30,6 @@ class DuelingDQN(nn.Module):
         # Register hook to scale gradients
         # self.fc1.weight.register_hook(scale_grad_hook)
         # self.fc2.weight.register_hook(scale_grad_hook)
-        # self.fc3.weight.register_hook(scale_grad_hook)
-        # self.fc4.weight.register_hook(scale_grad_hook)
-        # self.fc5.weight.register_hook(scale_grad_hook)
-        # self.fc6.weight.register_hook(scale_grad_hook)
 
         # self.init_weights()
 
@@ -42,17 +37,9 @@ class DuelingDQN(nn.Module):
         if x.shape[0] > 1:  # Only apply BatchNorm if training for batch
             x = F.relu(self.bn1(self.fc1(x)))
             x = F.relu(self.bn2(self.fc2(x)))
-            # x = F.relu(self.bn3(self.fc3(x)))
-            # x = F.relu(self.bn4(self.fc4(x)))
-            # x = F.relu(self.bn5(self.fc5(x)))
-            # x = F.relu(self.bn6(self.fc6(x)))
         else:
             x = F.relu(self.fc1(x))  # Skip BatchNorm for single input
             x = F.relu(self.fc2(x))
-            # x = F.relu(self.fc3(x))
-            # x = F.relu(self.fc4(x))
-            # x = F.relu(self.fc5(x))
-            # x = F.relu(self.fc6(x))
         
         # Compute the value function
         v = F.relu(self.fc_value(x))
