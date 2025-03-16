@@ -30,7 +30,6 @@ from skd_domains.skd_ppddl_domain import SkdPPDDLDomain
 from skd_domains.skd_spddl_domain import SkdSPDDLDomain
 from skd_domains.skd_gym_domain import BelugaGymCompatibleDomain, BelugaGymEnv
 
-from generate_instance import ProbConfig, main as encode_json
 from evaluation.planner_examples import _skd_action_to_beluga_action
 from evaluation.planner_api import BelugaPlan
 
@@ -38,77 +37,15 @@ from RL_agent import Agent
 
 
 class CustomBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
-    """This is an example specialization of the BelugaGymCompatibleDomain class
-    which transforms PDDL-style states and actions from the original Beluga
-    scikit-decide domains to tensors to be used with deep reinforcement learning
-    algorithms. As shown at the bottom of this script, an instance of this class
-    must be passed to the BelugaGymEnv class, which will automatically populate
-    the gymnasium environment methods expected by deep reinforcement learning
-    solvers.
-
-    Please note that this class does not provide efficient tensor representations
-    for states and actions. It is only intended as exemplifying the transformation
-    from PDDL-style states and actions to tensors, and vice-versa.
-
+    """
     State representation.
-    The PDDL-style state is composed of a set of predicates - and also fluents in the
-    case of the numeric PDDL encoding. Predicate and fluents take the form
-    (head obj1 ... objn), e.g. (at-side trailer1 fside). While a predicate can only be
-    true or false, a fluent can take a numeric value. For the tensor representation,
-    we treat predicates and fluents in the same way, assuming that a predicate is a fluent
-    taking Boolean values only. Our tensor representation is a fixed-size tensor,
-    but sufficiently large to handle problems of different sizes, using padding to disregard
-    the unused tensor entries. The observation space is a matrix NxM where each line
-    encodes a fluent and each column encodes the fluent's objects. Since fluents can
-    have a different number of arguments, we have as many columns as the the maximum
-    number of arguments across all the fluents, and we use padding to disregard entries
-    corresponding to unused arguments. It means that a fluent f, whose integer ID is f-id,
-    and whose arguments integer IDs are arg1-id, arg2-id, ..., and whose value if f-value,
-    is represented as a row vector in the form [f-id arg1-id arg2-id ... argn-id fvalue].
-    The arguments which are not used are equal to -1. For instance, if all the fluents
-    in the domain use at most 4 arguments, we would encode the Boolean predicate
-    (at-side trailer1 fside) taking a true value with a row vector in the form
-    [at-side-id trailer1-id f-side-id -1 -1 1].
-    IMPORTANT NOTE: in fact, PDDL-style states only enumerate Boolean predicates which
-    are true, for memory efficiency reasons. Our tensor representation does the same,
-    by listing only the rows corresponding to Boolean predicates that take a true value.
-    However, all the integer and float fluents are listed, as in PDDL.
+    States are represented simply from the PDDL states atoms, since this is the only information that changes overtime.
 
     Action representation.
-    The PDDL-style action takes the form of (head obj1 ... objn), e.g.
-    (get-from-hangar jig1 hangar1 trailer1). The tensor action is represented as a
-    1-dimensional tensor, i.e. a vector, in the form [action-id arg1-id ... argn-id]
-    where action-id, arg1-id, ..., argn-id are all integers. The number of argument
-    entries is equal to the maximum number of action arguments across all the actions
-    in the domain, meaning that unused argument entries for some actions are equal to -1.
-    For instance, if the maximum number of action arguments across all the actions in
-    the domain is equal to 5, the PDDL action (get-from-hangar jig1 hangar1 trailer1)
-    would be encoded as a vector [get-from-hangar-id jig1-ig hangar1-id trailer1-id -1 -1].
-
-    Applicable actions pitfall.
-    Whereas only a few actions are application in each possible given state, the number
-    of potential actions is huge (exponential in the number of action arguments). This
-    prevents from using standard masking techniques in deep reinforcement learning to
-    mask inapplicable actions in a given observation, because it would require first to
-    build a vector of size equal to the number of potential actions in the problem - which
-    is intractable for the Beluga problem. Finding a reasonable way to mask the inapplicable
-    actions in the Beluga environment is part of the challenge. In this simplistic
-    environment, we assume that all the actions are potentially applicable in each state,
-    but we penalize the inapplicable ones (see the reward signal description below). An
-    episode systematically ends when an action is applied in the current state where it is
-    not applicable.
+    - Unused
 
     Reward signal.
-    The objective of the Beluga environment is to find a policy which reaches a goal state
-    with a minimum number of steps. In this example environment, we propose to model the
-    reward signal as a function between 0 and 1, which is equal to 0 for all steps but the
-    terminal step which is equal to:
-    - 0 if the goal is not reached in the terminal step (meaning that this terminal step
-    corresponds to having applied an inapplicable action in the previous step or to having
-    exhausted the step budget)
-    - exp(-nb_of_steps) if the terminal step corresponds to a goal situation
-    That way, reaching the goal is always better than not reaching it, and it is better to
-    reach the goal with the fewest possible number of steps.
+    - Unused
     """
 
     def __init__(
@@ -144,13 +81,6 @@ class CustomBelugaGymCompatibleDomain(BelugaGymCompatibleDomain):
         self.max_fluent_value: np.int32 = max_fluent_value
         self.max_nb_atoms_or_fluents: np.int32 = max_nb_atoms_or_fluents
         self.max_nb_steps: np.int32 = max_nb_steps
-        # self.true_observation_space = BoxSpace(
-        #     low=-1,
-        #     high=len(skd_beluga_domain.task.objects),
-        #     shape=(len(skd_beluga_domain.task.objects)//3,),
-        #     dtype=np.int32
-
-        #  )
         self.max_atom_args = max_atom_args
         self.true_observation_space = BoxSpace(
             low=np.ones(

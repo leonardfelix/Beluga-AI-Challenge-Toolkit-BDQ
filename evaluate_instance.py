@@ -12,6 +12,7 @@ from evaluation.evaluators import ProbabilisticEvaluator, DeterministicEvaluator
 from evaluation.planner_examples import RandomProbabilisticPlanner, RandomDeterministicPlanner
 from evaluation.planner_examples import FixedPlanDeterministicPlanner
 from evaluation.planner_examples import LazyAstarDeterministicPlanner, LazyAstarProbabilisticPlanner
+from branch_DQN_planner import BranchingDQNDeterministicPlanner
 
 def build_planner(args):
     planner = None
@@ -24,7 +25,7 @@ def build_planner(args):
             planner = LazyAstarProbabilisticPlanner()
     else:
         if args.planner == 'random':
-            planner = RandomDeterministicPlanner(max_steps=args.max_simulation_steps)
+            planner = BranchingDQNDeterministicPlanner(max_steps=args.max_simulation_steps)
         elif args.planner == 'lazy_astar':
             planner = LazyAstarDeterministicPlanner()
     return planner

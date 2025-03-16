@@ -160,7 +160,7 @@ def get_valid_destination(domain, state):
         if obj.startswith(("beluga_trailer","factory_trailer","rack", "pl")):
             destination.append(index)
 
-    beluga_ids = [beluga_outgoing[-1] for beluga_outgoing in state.atoms[8] if 2 not in beluga_outgoing] # Add beluga that have any outgoing; add the ones that doesn't have dummy jig (2).
+    beluga_ids = [beluga_outgoing[-1] for beluga_outgoing in state.atoms[-1] if 2 not in beluga_outgoing] # Add beluga that have any outgoing; add the ones that doesn't have dummy jig (2).
 
     return destination + beluga_ids
 
