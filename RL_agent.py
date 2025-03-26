@@ -14,6 +14,7 @@ from evaluation.planner_api import BelugaPlan
 from DQN import DuelingDQN
 from prioritised_experience_replay import PrioritisedReplayMemory
 
+import wandb
 
 DATE_FORMAT = "%m-%d %H:%M:%S"
 
@@ -26,6 +27,7 @@ matplotlib.use('Agg')
 LARGE_NEG = -float('inf')
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 
 class Agent:
     '''
@@ -74,6 +76,17 @@ class Agent:
 
         with open(os.path.join(RUNS_DIR, 'hyperparameters.yaml'), 'w') as file: # save hyperparameters
             yaml.dump(all_hyperparameters, file)
+
+        # Log to weights and biases. Start a new wandb run to track this script.
+        self.wbrun = wandb.init(
+            # Set the wandb project where this run will be logged.
+            project="Beluga-DQN",
+            # Track hyperparameters and run metadata.
+            config={
+                "Description": "Default run with 3 jigs",
+                **instance_hyperparameters,
+            },
+        )
 
     def run(self, is_training=True):
         """
@@ -249,6 +262,9 @@ class Agent:
 
                 # Linear anneal for beta
                 beta = min(1.0, beta + self.beta_increment)
+
+                # Log metrics to wandb.
+                self.wbrun.log({"Reward": episode_reward, "epsilon": epsilon})
 
                 if len(memory) > self.batch_size:
                     batch = memory.sample(self.batch_size, beta)

@@ -1,25 +1,26 @@
-Training 03-26 16:32:38: Training starting...Training 03-26 16:32:40: New best reward: -9999999 Time taken: 0:00:02.600483 Episode: 0 Saved memory size: 30 out of 100000
-Training 03-26 16:32:42: New best reward: -103.014 Time taken: 0:00:04.591299 Episode: 9 Saved memory size: 369 out of 100000
-Training 03-26 16:32:44: New best reward: -77.005 Time taken: 0:00:06.055615 Episode: 15 Saved memory size: 590 out of 100000
-Training 03-26 16:32:47: New best reward: -7.01 Time taken: 0:00:08.990985 Episode: 27 Saved memory size: 996 out of 100000
-Training 03-26 16:33:01: New best reward: 2.9869999999999983 Time taken: 0:00:23.160917 Episode: 78 Saved memory size: 2771 out of 100000
-Training 03-26 16:33:05: New best reward: 2.986999999999999 Time taken: 0:00:27.470396 Episode: 93 Saved memory size: 3234 out of 100000
-Training 03-26 16:33:20: New best reward: 12.986 Time taken: 0:00:42.333747 Episode: 139 Saved memory size: 4768 out of 100000
-Training done in: 0:02:25.258605 Best reward: 12.989999999999998 Best actions:
+Training 03-26 22:50:47: Training starting...Training 03-26 22:50:53: New best reward: -9999999 Time taken: 0:00:06.269591 Episode: 0 Saved memory size: 34 out of 100000
+Training 03-26 22:50:54: New best reward: -164.013 Time taken: 0:00:06.602751 Episode: 1 Saved memory size: 79 out of 100000
+Training 03-26 22:50:54: New best reward: -153.024 Time taken: 0:00:06.907734 Episode: 2 Saved memory size: 124 out of 100000
+Training 03-26 22:50:55: New best reward: -137.02300000000005 Time taken: 0:00:07.514060 Episode: 4 Saved memory size: 213 out of 100000
+Training 03-26 22:50:55: New best reward: -127.01800000000006 Time taken: 0:00:08.302327 Episode: 7 Saved memory size: 309 out of 100000
+Training 03-26 22:50:56: New best reward: -47.016 Time taken: 0:00:09.031290 Episode: 9 Saved memory size: 391 out of 100000
+Training 03-26 22:51:15: New best reward: -17.013000000000012 Time taken: 0:00:27.789475 Episode: 47 Saved memory size: 1875 out of 100000
+Training 03-26 22:51:26: New best reward: 2.988999999999998 Time taken: 0:00:38.914525 Episode: 79 Saved memory size: 2870 out of 100000
+Training done in: 0:05:39.935648 Best reward: 12.989999999999998 Best actions:
 (unload-beluga jig0001 jig0002 beluga_trailer_1 beluga1)
-(put-down-rack jig0001 beluga_trailer_1 rack01 bside n18 n29 n11)
+(put-down-rack jig0001 beluga_trailer_1 rack00 bside n18 n22 n04)
+(pick-up-rack jig0001 factory_trailer_1 rack00 fside bside n18 n04 n22)
 (unload-beluga jig0002 dummy-jig beluga_trailer_1 beluga1)
 (beluga-complete beluga1 beluga2)
-(pick-up-rack jig0001 factory_trailer_1 rack01 fside bside n18 n11 n29)
 (deliver-to-hangar jig0001 dummy-jig factory_trailer_1 hangar1 pl0 n18 n09)
 (put-down-rack jig0002 beluga_trailer_1 rack01 bside n18 n29 n11)
-(pick-up-rack jig0002 factory_trailer_1 rack01 fside bside n18 n11 n29)
-(deliver-to-hangar jig0002 dummy-jig factory_trailer_1 hangar2 pl1 n18 n09)
 (get-from-hangar jig0001 hangar1 factory_trailer_1)
-(put-down-rack jig0001 factory_trailer_1 rack01 fside n09 n29 n20)
-(pick-up-rack jig0001 beluga_trailer_1 rack01 bside fside n09 n20 n29)
+(put-down-rack jig0001 factory_trailer_1 rack00 fside n09 n22 n13)
+(pick-up-rack jig0001 beluga_trailer_1 rack00 bside fside n09 n13 n22)
 (load-beluga jig0001 typec typec beluga2 beluga_trailer_1 slot0 slot1)
-(get-from-hangar jig0002 hangar2 factory_trailer_1)
+(pick-up-rack jig0002 factory_trailer_1 rack01 fside bside n18 n11 n29)
+(deliver-to-hangar jig0002 dummy-jig factory_trailer_1 hangar3 pl1 n18 n09)
+(get-from-hangar jig0002 hangar3 factory_trailer_1)
 (put-down-rack jig0002 factory_trailer_1 rack01 fside n09 n29 n20)
 (pick-up-rack jig0002 beluga_trailer_1 rack01 bside fside n09 n20 n29)
 (load-beluga jig0002 typec dummy-type beluga2 beluga_trailer_1 slot1 dummy-slot)

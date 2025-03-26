@@ -6,7 +6,7 @@ belugaAI:
   checkpoint: ''
   discount_factor: 0.99
   env_id: BelugaAI
-  episode_run: 1000
+  episode_run: 500
   epsilon_decay: 0.995
   epsilon_end: 0.05
   epsilon_start: 1.0

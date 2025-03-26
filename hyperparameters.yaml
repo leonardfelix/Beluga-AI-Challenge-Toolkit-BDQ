@@ -14,4 +14,4 @@ belugaAI:
   alpha: 0.0 # priority exponent (0 = uniform, 1 = highest priority first) deafult 0.6
   beta: 1.0 # importance-sampling correction (0 = no correction, 1 = perfect correction) defaut 0.4
   beta_increment: 0.0001 # rate of beta increase per episode default 0.0001
-  episode_run: 500
+  episode_run: 1000

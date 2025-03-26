@@ -8,3 +8,4 @@ ray[tune]==2.40.0
 dm-tree==0.1.8
 lz4==4.3.3
 torch==2.5.1
+wandb

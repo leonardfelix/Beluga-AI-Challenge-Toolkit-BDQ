@@ -469,8 +469,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     ########################################################### SELECT PROBLEM
-    problem_folder = "_three_jigs"
-    problem_name = "problem_s3_j3_r2_oc00_f3.json"
+    problem_folder = "_six_jigs"
+    problem_name = "problem_s3_j6_r2_oc00_f3.json"
 
     # print("Generating JSON instance")
     # _, problem_name = encode_json(problem_folder, problem_name, config, pconfig=pconfig)
