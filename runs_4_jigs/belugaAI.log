@@ -1,0 +1,25 @@
+Training 03-17 00:57:45: Training starting...Training 03-17 00:57:50: New best reward: -9999999 Time taken: 0:00:05.666408 Episode: 0 Saved memory size: 31 out of 100000
+Training 03-17 00:57:51: New best reward: -23.518000000000015 Time taken: 0:00:06.093831 Episode: 4 Saved memory size: 219 out of 100000
+Training 03-17 00:57:56: New best reward: 6.4879999999999995 Time taken: 0:00:11.560821 Episode: 40 Saved memory size: 2152 out of 100000
+Training 03-17 00:58:23: New best reward: 13.988 Time taken: 0:00:38.199109 Episode: 209 Saved memory size: 7983 out of 100000
+Training done in: 0:01:24.205974 Best reward: 13.989999999999998 Best actions:
+(unload-beluga jig0001 jig0002 beluga_trailer_2 beluga1)
+(unload-beluga jig0002 dummy-jig beluga_trailer_1 beluga1)
+(beluga-complete beluga1 beluga2)
+(put-down-rack jig0001 beluga_trailer_2 rack01 bside)
+(pick-up-rack jig0001 factory_trailer_3 rack01 fside bside)
+(put-down-rack jig0002 beluga_trailer_1 rack00 bside)
+(deliver-to-hangar jig0001 dummy-jig factory_trailer_3 hangar1 pl2)
+(get-from-hangar jig0001 hangar1 factory_trailer_3)
+(pick-up-rack jig0002 factory_trailer_2 rack00 fside bside)
+(deliver-to-hangar jig0002 dummy-jig factory_trailer_2 hangar1 pl0)
+(put-down-rack jig0001 factory_trailer_3 rack01 fside)
+(get-from-hangar jig0002 hangar1 factory_trailer_1)
+(pick-up-rack jig0001 beluga_trailer_2 rack01 bside fside)
+(load-beluga jig0001 typec typec beluga2 beluga_trailer_2 slot0 slot1)
+(put-down-rack jig0002 factory_trailer_1 rack00 fside)
+(pick-up-rack jig0002 beluga_trailer_2 rack00 bside fside)
+(load-beluga jig0002 typec dummy-type beluga2 beluga_trailer_2 slot1 dummy-slot)
+(beluga-complete beluga2 beluga3)
+(unload-beluga jig0003 jig0004 beluga_trailer_2 beluga3)
+(unload-beluga jig0004 dummy-jig beluga_trailer_1 beluga3)

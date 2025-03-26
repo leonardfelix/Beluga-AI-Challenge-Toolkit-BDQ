@@ -1,0 +1,27 @@
+Training 03-25 19:32:40: Training starting...Training 03-25 19:32:42: New best reward: -9999999 Time taken: 0:00:02.711646 Episode: 0 Saved memory size: 41 out of 100000
+Training 03-25 19:32:43: New best reward: -157.01700000000005 Time taken: 0:00:02.917849 Episode: 1 Saved memory size: 73 out of 100000
+Training 03-25 19:32:43: New best reward: -143.012 Time taken: 0:00:03.149351 Episode: 2 Saved memory size: 108 out of 100000
+Training 03-25 19:32:49: New best reward: -27.024 Time taken: 0:00:09.137464 Episode: 27 Saved memory size: 1021 out of 100000
+Training 03-25 19:32:52: New best reward: -27.00999999999999 Time taken: 0:00:11.940522 Episode: 38 Saved memory size: 1366 out of 100000
+Training 03-25 19:33:18: New best reward: 2.9889999999999994 Time taken: 0:00:37.873854 Episode: 127 Saved memory size: 4194 out of 100000
+Training 03-25 19:33:40: New best reward: 12.988 Time taken: 0:01:00.136436 Episode: 199 Saved memory size: 6040 out of 100000
+Training done in: 0:02:33.524564 Best reward: 12.989999999999998 Best actions:
+(unload-beluga jig0001 jig0002 beluga_trailer_1 beluga1)
+(put-down-rack jig0001 beluga_trailer_1 rack01 bside n18 n29 n11)
+(pick-up-rack jig0001 factory_trailer_1 rack01 fside bside n18 n11 n29)
+(deliver-to-hangar jig0001 dummy-jig factory_trailer_1 hangar1 pl0 n18 n09)
+(unload-beluga jig0002 dummy-jig beluga_trailer_1 beluga1)
+(beluga-complete beluga1 beluga2)
+(put-down-rack jig0002 beluga_trailer_1 rack00 bside n18 n22 n04)
+(pick-up-rack jig0002 factory_trailer_1 rack00 fside bside n18 n04 n22)
+(deliver-to-hangar jig0002 dummy-jig factory_trailer_1 hangar2 pl1 n18 n09)
+(get-from-hangar jig0001 hangar1 factory_trailer_1)
+(put-down-rack jig0001 factory_trailer_1 rack01 fside n09 n29 n20)
+(pick-up-rack jig0001 beluga_trailer_1 rack01 bside fside n09 n20 n29)
+(load-beluga jig0001 typec typec beluga2 beluga_trailer_1 slot0 slot1)
+(get-from-hangar jig0002 hangar2 factory_trailer_1)
+(put-down-rack jig0002 factory_trailer_1 rack00 fside n09 n22 n13)
+(pick-up-rack jig0002 beluga_trailer_1 rack00 bside fside n09 n13 n22)
+(load-beluga jig0002 typec dummy-type beluga2 beluga_trailer_1 slot1 dummy-slot)
+(beluga-complete beluga2 beluga3)
+(unload-beluga jig0003 dummy-jig beluga_trailer_1 beluga3)

@@ -357,7 +357,7 @@ class Agent:
         plt.plot(mean_rewards)
         plt.xlabel("Episode")
         plt.ylabel("Reward")
-        plt.title("Reward per episode")
+        plt.title("Reward per Episode without Priority Experience Replay")
 
         # plt.plot(loss_history)
         # plt.xlabel("Episode")
