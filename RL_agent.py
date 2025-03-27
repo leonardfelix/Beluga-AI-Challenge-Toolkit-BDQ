@@ -158,6 +158,7 @@ class Agent:
             states_visited = []
             repeated_states = 0
             taken_actions = []
+            goal_reached = False
 
             while (not terminated and simulation_step < self.maximum_simulation_steps):
                 state = gym_compatible_domain.make_state_array(state_pddl, jigs_ids, destination_ids)
@@ -212,8 +213,12 @@ class Agent:
                     reward = self.get_reward(states_visited, new_state_pddl, action.action_id, terminated, num_jigs) 
                     taken_actions.append(action)
 
+                    # check if goal is reached
+                    if terminated:
+                        goal_reached = True
+
                     # set soft limit to state repetition cycles (terminate the episode after more than num_jigs*2 consecutive repetitions)
-                    if reward == -30/num_jigs:
+                    if reward == -10:
                         if repeated_states > (num_jigs)*2:
                             terminated = True
                         else:
@@ -238,9 +243,10 @@ class Agent:
             rewards_per_episode.append(episode_reward)
             print("episode terminated") # Log termination
 
-            # Save model when best rewards is obtained
             if is_training:
-                if episode_reward > best_reward:
+                if best_actions is None:    # Initialize best_actions to not be None
+                    best_actions = tuple(taken_actions)
+                if episode_reward > best_reward and goal_reached:   # Save model when best rewards is obtained and goal is reached
                     log_message = f"Training {datetime.now().strftime(DATE_FORMAT)}: New best reward: {best_reward} Time taken: {datetime.now() - start_time} Episode: {episode} Saved memory size: {len(memory)} out of {self.replay_memory_size}\n"
                     print(log_message)
                     with open(self.LOG_FILE, "a") as file:
@@ -402,4 +408,4 @@ class Agent:
         elif action_id in [3]:
             return 2
         else:
-            return -30/num_jigs  if new_state in states_visited else -(1/self.maximum_simulation_steps) 
+            return -10  if new_state in states_visited else -(1/self.maximum_simulation_steps) 
