@@ -377,17 +377,6 @@ if __name__ == "__main__":
                 'ppddl' mode: generate next arrival flight based on the history of landed Beluga flights",
     )
 
-    # parser.add_argument(
-    #     "-pt",
-    #     "--probabilistic-type",
-    #     type=argparse.FileType("r"),
-    #     default=None,
-    #     help="Configuration file for the chosen type of Potential in \
-    #                     the probabilistic model; by default, a uniform potential is \
-    #                     used. This parameter is ignored unless 'ppddl' probabilistic mode \
-    #                     if enabled",
-    # )
-
     parser.add_argument(
         "-pw",
         "--probabilistic-window",

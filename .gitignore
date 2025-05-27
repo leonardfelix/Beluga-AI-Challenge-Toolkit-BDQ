@@ -8,6 +8,7 @@ __pycache__/
 .venv/
 .vscode/
 wandb/
+runs/
 
 # Mac info
 .DS_Store

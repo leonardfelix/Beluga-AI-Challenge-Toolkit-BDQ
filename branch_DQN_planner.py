@@ -56,37 +56,3 @@ class BranchingDQNDeterministicPlanner(DeterministicPlannerAPI):
 
         # Return the result
         return res
-
-
-        # action_space = domain.get_action_space()
-        # observation_space = domain.get_observation_space()
-
-        # res = BelugaPlan()
-        # s = domain.reset()
-        # for step in range(self.max_steps):
-        #     # Stop the process if the goal has been reached
-        #     if domain._is_terminal(s):
-        #         break
-        #     # Determine applicable actions
-        #     actions = domain.get_applicable_actions(s)
-        #     # Stop the process if a dead-end has been reached
-        #     if len(actions.get_elements()) == 0:
-        #         break
-        #     # Sample an applicable action
-        #     a = actions.sample()
-        #     # Convert the action in the competition format
-        #     ba = _skd_action_to_beluga_action(action=a, domain=domain, classic=self.classic)
-        #     # Store the action in the plan
-        #     res.append(ba)
-        #     # Apply the action and move to the next state
-        #     o = domain.step(a)
-        #     s = o.observation
-
-        # # # Return the plan
-        # # return res
-
-        # # Cleanup
-        # domain.cleanup()
-
-        # # Return the result
-        # return res

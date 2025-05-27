@@ -381,11 +381,6 @@ class Agent:
         plt.ylabel("Reward")
         plt.title("Reward per Episode without Priority Experience Replay")
 
-        # plt.plot(loss_history)
-        # plt.xlabel("Episode")
-        # plt.ylabel("Loss")
-        # plt.title("Loss per episode")
-
         # plot epsilon
         plt.subplot(1,2,2)
         plt.plot(epsilon_history)
