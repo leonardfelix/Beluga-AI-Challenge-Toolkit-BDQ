@@ -6,7 +6,7 @@ This repository explores solutions using [**Branching Dueling Q-Networks (BDQ)**
 
 The logistics problem involves selecting an optimal sequence of actions which could be broken down to choosing the appropriate **jig**, **action**, and **destination** to efficiently load and transport cargo. This repository models the problem as a **sequential decision process**, where each step (e.g., jig selection, action selection, destination selection) is conditioned on prior decisions (state).
 
-The **Branching Q-Network (BDQ)** is used to decompose the action space and learn Q-values for each action component separately, allowing for efficient exploration and evaluation of multi-branch decision spaces.
+The **Branching Q-Network (BDQ)** is used to decompose the action space and learn Q-values for each action component separately, allowing for better exploration and evaluation of multi-branch decision spaces.
 
 ---
 
